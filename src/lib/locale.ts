@@ -1,106 +1,114 @@
 // src/lib/locale.ts
+// Utilidades de idioma/país
 
-interface LocaleDetail {
-  languageCode: string;
-  countryCode: string;
-  countryName: string;
+// Remove acentos e normaliza para minúsculas
+export function normalizeText(input: string): string {
+  return (input || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}+/gu, "")
+    .toLowerCase()
+    .trim();
 }
 
-// A comprehensive mapping from various language names/codes to a primary country.
-const localeMap: Record<string, LocaleDetail> = {
-  // Major languages with primary countries
-  english: { languageCode: 'en', countryCode: 'US', countryName: 'United States' },
-  portuguese: { languageCode: 'pt', countryCode: 'BR', countryName: 'Brazil' },
-  spanish: { languageCode: 'es', countryCode: 'ES', countryName: 'Spain' },
-  japanese: { languageCode: 'ja', countryCode: 'JP', countryName: 'Japan' },
-  chinese: { languageCode: 'zh', countryCode: 'CN', countryName: 'China' },
-  hindi: { languageCode: 'hi', countryCode: 'IN', countryName: 'India' },
-  french: { languageCode: 'fr', countryCode: 'FR', countryName: 'France' },
-  german: { languageCode: 'de', countryCode: 'DE', countryName: 'Germany' },
-  russian: { languageCode: 'ru', countryCode: 'RU', countryName: 'Russia' },
-  arabic: { languageCode: 'ar', countryCode: 'SA', countryName: 'Saudi Arabia' },
-  italian: { languageCode: 'it', countryCode: 'IT', countryName: 'Italy' },
-  korean: { languageCode: 'ko', countryCode: 'KR', countryName: 'South Korea' },
-  dutch: { languageCode: 'nl', countryCode: 'NL', countryName: 'Netherlands' },
-  turkish: { languageCode: 'tr', countryCode: 'TR', countryName: 'Turkey' },
-  vietnamese: { languageCode: 'vi', countryCode: 'VN', countryName: 'Vietnam' },
-  polish: { languageCode: 'pl', countryCode: 'PL', countryName: 'Poland' },
-  ukrainian: { languageCode: 'uk', countryCode: 'UA', countryName: 'Ukraine' },
-  romanian: { languageCode: 'ro', countryCode: 'RO', countryName: 'Romania' },
-  greek: { languageCode: 'el', countryCode: 'GR', countryName: 'Greece' },
-  swedish: { languageCode: 'sv', countryCode: 'SE', countryName: 'Sweden' },
-  czech: { languageCode: 'cs', countryCode: 'CZ', countryName: 'Czech Republic' },
-  hungarian: { languageCode: 'hu', countryCode: 'HU', countryName: 'Hungary' },
-  danish: { languageCode: 'da', countryCode: 'DK', countryName: 'Denmark' },
-  finnish: { languageCode: 'fi', countryCode: 'FI', countryName: 'Finland' },
-  norwegian: { languageCode: 'no', countryCode: 'NO', countryName: 'Norway' },
-  hebrew: { languageCode: 'he', countryCode: 'IL', countryName: 'Israel' },
-  thai: { languageCode: 'th', countryCode: 'TH', countryName: 'Thailand' },
-  indonesian: { languageCode: 'id', countryCode: 'ID', countryName: 'Indonesia' },
-  malay: { languageCode: 'ms', countryCode: 'MY', countryName: 'Malaysia' },
-  
-  // Aliases and alternative names
-  português: { languageCode: 'pt', countryCode: 'BR', countryName: 'Brazil' },
-  portugues: { languageCode: 'pt', countryCode: 'BR', countryName: 'Brazil' },
-  español: { languageCode: 'es', countryCode: 'ES', countryName: 'Spain' },
-  espanhol: { languageCode: 'es', countryCode: 'ES', countryName: 'Spain' },
-  japonês: { languageCode: 'ja', countryCode: 'JP', countryName: 'Japan' },
-  japones: { languageCode: 'ja', countryCode: 'JP', countryName: 'Japan' },
-  日本語: { languageCode: 'ja', countryCode: 'JP', countryName: 'Japan' },
-  chinês: { languageCode: 'zh', countryCode: 'CN', countryName: 'China' },
-  chines: { languageCode: 'zh', countryCode: 'CN', countryName: 'China' },
-  mandarin: { languageCode: 'zh', countryCode: 'CN', countryName: 'China' },
-  français: { languageCode: 'fr', countryCode: 'FR', countryName: 'France' },
-  deutsch: { languageCode: 'de', countryCode: 'DE', countryName: 'Germany' },
-  alemão: { languageCode: 'de', countryCode: 'DE', countryName: 'Germany' },
-  italiano: { languageCode: 'it', countryCode: 'IT', countryName: 'Italy' },
-  latin: { languageCode: 'la', countryCode: 'VA', countryName: 'Vatican City' },
-  latim: { languageCode: 'la', countryCode: 'VA', countryName: 'Vatican City' },
-
-  // ISO codes
-  en: { languageCode: 'en', countryCode: 'US', countryName: 'United States' },
-  pt: { languageCode: 'pt', countryCode: 'BR', countryName: 'Brazil' },
-  es: { languageCode: 'es', countryCode: 'ES', countryName: 'Spain' },
-  ja: { languageCode: 'ja', countryCode: 'JP', countryName: 'Japan' },
-  zh: { languageCode: 'zh', countryCode: 'CN', countryName: 'China' },
-  hi: { languageCode: 'hi', countryCode: 'IN', countryName: 'India' },
-  fr: { languageCode: 'fr', countryCode: 'FR', countryName: 'France' },
-  de: { languageCode: 'de', countryCode: 'DE', countryName: 'Germany' },
-  ru: { languageCode: 'ru', countryCode: 'RU', countryName: 'Russia' },
-  ar: { languageCode: 'ar', countryCode: 'SA', countryName: 'Saudi Arabia' },
-  it: { languageCode: 'it', countryCode: 'IT', countryName: 'Italy' },
-  ko: { languageCode: 'ko', countryCode: 'KR', countryName: 'South Korea' },
-  nl: { languageCode: 'nl', countryCode: 'NL', countryName: 'Netherlands' },
-  la: { languageCode: 'la', countryCode: 'VA', countryName: 'Vatican City' },
+// Mapa de sinônimos -> ISO 639-1 (2 letras)
+// Pode expandir à vontade; já cobre as principais entradas multi-idioma.
+const LANG_SYNONYMS_TO_ISO2: Record<string, string> = {
+  // Alemão
+  "alemao": "de", "alemã": "de", "alemao (de)": "de",
+  "alemán": "de", "german": "de", "deutsch": "de", "de": "de",
+  // Inglês
+  "ingles": "en", "inglês": "en", "inglese": "en", "english": "en", "en": "en",
+  // Francês
+  "frances": "fr", "francês": "fr", "francais": "fr", "français": "fr", "french": "fr", "fr": "fr",
+  // Japonês
+  "japones": "ja", "japonês": "ja", "nihongo": "ja", "japanese": "ja", "ja": "ja",
+  // Português
+  "portugues": "pt", "português": "pt", "portuguese": "pt", "pt": "pt",
+  // Espanhol
+  "espanhol": "es", "espanol": "es", "español": "es", "spanish": "es", "es": "es",
+  // Italiano
+  "italiano": "it", "italian": "it", "it": "it",
+  // Chinês (mandarim genérico)
+  "chines": "zh", "chinês": "zh", "chino": "zh", "chinese": "zh", "zh": "zh",
+  // Hindi
+  "hindi": "hi", "hi": "hi",
+  // Árabe
+  "arabe": "ar", "árabe": "ar", "arabic": "ar", "ar": "ar",
+  // Russo
+  "russo": "ru", "ruso": "ru", "russian": "ru", "ru": "ru",
+  // Coreano
+  "coreano": "ko", "korean": "ko", "ko": "ko",
+  // Turco
+  "turco": "tr", "turkish": "tr", "tr": "tr",
+  // Holandês
+  "holandes": "nl", "holandês": "nl", "dutch": "nl", "nl": "nl",
+  // Sueco
+  "sueco": "sv", "swedish": "sv", "sv": "sv",
+  // Norueguês
+  "noruegues": "no", "norueguês": "no", "norwegian": "no", "no": "no",
+  // Dinamarquês
+  "dinamarques": "da", "dinamarquês": "da", "danish": "da", "da": "da",
+  // Polonês
+  "polones": "pl", "polonês": "pl", "polish": "pl", "pl": "pl",
+  // Grego
+  "grego": "el", "greek": "el", "el": "el",
+  // Tailandês
+  "tailandes": "th", "tailandês": "th", "thai": "th", "th": "th",
+  // Vietnamita
+  "vietnamita": "vi", "vietnamese": "vi", "vi": "vi",
+  // Indonésio
+  "indonesio": "id", "indonésio": "id", "indonesian": "id", "id": "id",
+  // Malaio
+  "malayo": "ms", "malaio": "ms", "malay": "ms", "ms": "ms",
+  // Hebraico
+  "hebraico": "he", "hebrew": "he", "he": "he",
+  // Persa / Farsi
+  "persa": "fa", "farsi": "fa", "fa": "fa",
+  // Ucraniano
+  "ucraniano": "uk", "ukrainian": "uk", "uk": "uk",
+  // Bengali
+  "bengali": "bn", "bangla": "bn", "bn": "bn",
+  // Punjabi
+  "punjabi": "pa", "panjabi": "pa", "pa": "pa",
+  // Latim
+  "latim": "la", "latin": "la", "la": "la",
 };
 
-const defaultLocale: LocaleDetail = { languageCode: 'en', countryCode: 'US', countryName: 'United States' };
+// Alguns nomes EN para fallback (case normalized)
+export const ISO2_TO_ENGLISH_NAME: Record<string, string> = {
+  de: "german",
+  en: "english",
+  fr: "french",
+  ja: "japanese",
+  pt: "portuguese",
+es: "spanish",
+  it: "italian",
+  zh: "chinese",
+  hi: "hindi",
+  ar: "arabic",
+  ru: "russian",
+  ko: "korean",
+  tr: "turkish",
+  nl: "dutch",
+  sv: "swedish",
+  no: "norwegian",
+  da: "danish",
+  pl: "polish",
+  el: "greek",
+  th: "thai",
+  vi: "vietnamese",
+  id: "indonesian",
+  ms: "malay",
+  he: "hebrew",
+  fa: "persian",
+  uk: "ukrainian",
+  bn: "bengali",
+  pa: "punjabi",
+  la: "latin",
+};
 
-/**
- * Determines the language code, country code, and country name from a language input.
- * @param languageInput The language typed by the user.
- * @returns An object containing languageCode, countryCode, and countryName.
- */
-export function getLocaleDetails(languageInput: string | null | undefined): LocaleDetail {
-  if (!languageInput) {
-    return defaultLocale;
-  }
-  
-  // Normalize the input: lowercase and trim whitespace
-  const normalizedInput = languageInput.trim().toLowerCase();
-  
-  // Look for a direct match in the map (covers primary names, aliases, and ISO codes)
-  if (localeMap[normalizedInput]) {
-    return localeMap[normalizedInput];
-  }
-  
-  // If no direct match, try to find a partial match (e.g., "english" in "us-english")
-  for (const key in localeMap) {
-    if (normalizedInput.includes(key) || key.includes(normalizedInput)) {
-      return localeMap[key];
-    }
-  }
-
-  // Return a sensible default if no match is found
-  return defaultLocale;
+// Converte o texto digitado para um ISO 639-1, quando possível
+export function toIso2Language(input: string): string | null {
+  const key = normalizeText(input);
+  return LANG_SYNONYMS_TO_ISO2[key] || null;
 }

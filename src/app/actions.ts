@@ -2,91 +2,65 @@
 
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, writeBatch, serverTimestamp, setDoc } from 'firebase/firestore';
+import { toIso2Language, ISO2_TO_ENGLISH_NAME } from '@/lib/locale';
 
-// A local, simplified map to get a language code for the API call.
-const languageToCodeMap: Record<string, string> = {
-  english: 'en',
-  portuguese: 'pt',
-  spanish: 'es',
-  japanese: 'ja',
-  chinese: 'zh',
-  hindi: 'hi',
-  french: 'fr',
-  german: 'de',
-  russian: 'ru',
-  arabic: 'ar',
-  italian: 'it',
-  korean: 'ko',
-  dutch: 'nl',
-  turkish: 'tr',
-  vietnamese: 'vi',
-  polish: 'pl',
-  ukrainian: 'uk',
-  romanian: 'ro',
-  greek: 'el',
-  swedish: 'sv',
-  czech: 'cs',
-  hungarian: 'hu',
-  danish: 'da',
-  finnish: 'fi',
-  norwegian: 'no',
-  hebrew: 'he',
-  thai: 'th',
-  indonesian: 'id',
-  malay: 'ms',
-  português: 'pt',
-  español: 'es',
-  japonês: 'ja',
-  chinês: 'zh',
-  français: 'fr',
-  deutsch: 'de',
-  alemão: 'de',
-  italiano: 'it',
-  latin: 'la',
-  latim: 'la',
-  en: 'en',
-  pt: 'pt',
-  es: 'es',
-  ja: 'ja',
-  zh: 'zh',
-  hi: 'hi',
-  fr: 'fr',
-  de: 'de',
-  ru: 'ru',
-  ar: 'ar',
-  it: 'it',
-  ko: 'ko',
-  nl: 'nl',
-  la: 'la',
-};
-
-async function getCountryFromLanguage(language: string): Promise<{ countryCode: string; countryName: string }> {
-  const normalizedLanguage = language.trim().toLowerCase();
-  const langCode = languageToCodeMap[normalizedLanguage] || normalizedLanguage; // Use map or fallback to input
-
+async function fetchCountryByLanguage(langIso2OrName: string) {
+  const url = `https://restcountries.com/v3.1/lang/${encodeURIComponent(langIso2OrName)}`;
   try {
-    const response = await fetch(`https://restcountries.com/v3.1/lang/${langCode}`);
-    if (!response.ok) {
-      console.warn(`Could not find country for language: ${langCode}. Defaulting to US.`);
-      return { countryCode: 'US', countryName: 'United States' };
-    }
-    const data = await response.json();
-    
-    // Use the first country from the list as the primary one.
-    if (data && data.length > 0) {
-      const country = data[0];
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return [];
+    return (await res.json()) as any[];
+  } catch (error) {
+    console.error(`Error fetching country for language '${langIso2OrName}':`, error);
+    return [];
+  }
+}
+
+async function resolveCountryFromLanguage(inputLanguage: string) {
+  // 1) normaliza para ISO2 quando possível
+  const iso2 = toIso2Language(inputLanguage);
+
+  // 2) tenta com iso2 primeiro
+  if (iso2) {
+    let list = await fetchCountryByLanguage(iso2);
+    if (Array.isArray(list) && list.length > 0) {
+      const c = list[0];
       return {
-        countryCode: country.cca2 || 'N/A',
-        countryName: country.name.common || 'Unknown',
+        countryCode: (c.cca2 || '').toUpperCase(),
+        countryName: c?.name?.common || '',
       };
     }
-  } catch (error) {
-    console.error('Error fetching country data:', error);
+    // 3) fallback: tenta com nome inglês da língua
+    const enName = ISO2_TO_ENGLISH_NAME[iso2];
+    if (enName) {
+      list = await fetchCountryByLanguage(enName);
+      if (Array.isArray(list) && list.length > 0) {
+        const c = list[0];
+        return {
+          countryCode: (c.cca2 || '').toUpperCase(),
+          countryName: c?.name?.common || '',
+        };
+      }
+    }
   }
 
-  // Default fallback
-  return { countryCode: 'US', countryName: 'United States' };
+  // 4) último recurso: tenta direto com o texto normalizado (sem acentos)
+  const tryRaw = inputLanguage.normalize('NFD').replace(/\p{Diacritic}+/gu, '').toLowerCase().trim();
+  if (tryRaw) {
+      let list = await fetchCountryByLanguage(tryRaw);
+      if (Array.isArray(list) && list.length > 0) {
+        const c = list[0];
+        return {
+          countryCode: (c.cca2 || '').toUpperCase(),
+          countryName: c?.name?.common || '',
+        };
+      }
+  }
+
+
+  // Se nada deu certo, devolve nulos (não quebra o submit)
+  return { countryCode: 'N/A', countryName: 'Unknown' };
 }
 
 
@@ -150,21 +124,33 @@ export async function registerLead(
     };
   }
 
-  const { name, email, niche, language: languageInput } = validatedFields.data;
+  const { name, email, niche, language } = validatedFields.data;
   const emailId = email.toLowerCase();
   
   const agentOrigin = nicheToAgentOrigin[niche];
-  const { countryCode, countryName } = await getCountryFromLanguage(languageInput);
+  const { countryCode, countryName } = await resolveCountryFromLanguage(language);
   const nicheCollection = nicheToCollection[niche];
 
   const leadData = {
     name,
     email: emailId,
     niche,
-    language: languageInput, // The original text typed by the agent
-    country: countryName,   // The detected country name
+    language: language,
+    country: countryName,
     agentOrigin,
     status: 'new',
+    createdAt: serverTimestamp(),
+  };
+  
+  const countryLeadData = {
+    name,
+    email: emailId,
+    niche,
+    language,
+    countryCode, // Adicionando para consistência
+    countryName,
+    status: 'new',
+    agentOrigin,
     createdAt: serverTimestamp(),
   };
 
@@ -176,13 +162,15 @@ export async function registerLead(
     batch.set(leadRef, leadData);
 
     // 2. Countries collection
-    const countryLeadRef = doc(db, `pais/${countryCode}/leads`, emailId);
-    batch.set(countryLeadRef, { registeredAt: serverTimestamp() });
+    if (countryCode && countryCode !== 'N/A') {
+        const countryLeadRef = doc(db, `pais/${countryCode}/leads`, emailId);
+        batch.set(countryLeadRef, countryLeadData);
+    }
+    
 
     // 3. Niche-specific collection
     if (nicheCollection) {
       const nicheLeadRef = doc(db, nicheCollection, emailId);
-      // For niche collections, we store the full lead data as well
       batch.set(nicheLeadRef, leadData);
     }
     
