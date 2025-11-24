@@ -41,15 +41,6 @@ function SubmitButton() {
   );
 }
 
-const LANGUAGE_OPTIONS = [
-  "English",
-  "Portuguese",
-  "Spanish",
-  "Japanese",
-  "Chinese",
-  "Hindi",
-];
-
 export function LeadIntakeForm() {
   const initialState: RegisterLeadResult = { success: false, fieldErrors: {} };
   const [state, formAction] = useActionState(registerLead, initialState);
@@ -83,7 +74,6 @@ export function LeadIntakeForm() {
           <Alert variant="destructive" className="mb-4">
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{state.formError}</AlertDescription>
-
           </Alert>
         )}
         <form
@@ -176,19 +166,15 @@ export function LeadIntakeForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
-               <Select name="language">
-                <SelectTrigger id="language" className="pl-10">
-                  <Languages className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
-                  <SelectValue placeholder="Select a language..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {LANGUAGE_OPTIONS.map((lang) => (
-                    <SelectItem key={lang} value={lang}>
-                      {lang}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="relative flex items-center">
+                 <Languages className="absolute left-3 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="language"
+                  name="language"
+                  placeholder="e.g., English, Japanese..."
+                  className="pl-10"
+                />
+              </div>
               {state.fieldErrors?.language && (
                 <p className="text-red-500 text-sm mt-1">
                   {state.fieldErrors.language}
