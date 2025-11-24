@@ -67,10 +67,10 @@ export function LeadIntakeForm() {
             <AlertDescription>{state.message}</AlertDescription>
           </Alert>
         )}
-        {state.message && !state.success && (
+        {state.formError && (
            <Alert variant="destructive" className="mb-4">
              <AlertTitle>Error</AlertTitle>
-             <AlertDescription>{state.message}</AlertDescription>
+             <AlertDescription>{state.formError}</AlertDescription>
            </Alert>
         )}
         <form
