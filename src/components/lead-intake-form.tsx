@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormState, useFormStatus } from "react-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { registerLead, type LeadState } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,25 @@ const initialState: LeadState = {
   success: false,
 };
 
+const languages = [
+    { code: 'en', label: 'English' },
+    { code: 'pt', label: 'Portuguese' },
+    { code: 'es', label: 'Spanish' },
+    { code: 'fr', label: 'French' },
+    { code: 'de', label: 'German' },
+    { code: 'it', label: 'Italian' },
+    { code: 'ja', label: 'Japanese' },
+    { code: 'ko', label: 'Korean' },
+    { code: 'zh-CN', label: 'Chinese – Simplified' },
+    { code: 'zh-TW', label: 'Chinese – Traditional' },
+    { code: 'ar', label: 'Arabic' },
+    { code: 'ru', label: 'Russian' },
+    { code: 'hi', label: 'Hindi' },
+    { code: 'id', label: 'Indonesian' },
+    { code: 'tr', label: 'Turkish' },
+    { code: 'other', label: 'Other' },
+];
+
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -31,6 +50,7 @@ export function LeadIntakeForm() {
   const [state, formAction] = useFormState(registerLead, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState('');
 
   useEffect(() => {
     if (state.success) {
@@ -39,8 +59,12 @@ export function LeadIntakeForm() {
         description: state.message,
       });
       formRef.current?.reset();
+      setSelectedLanguage('');
     } else if (state.message) {
-      const errorDescription = state.errors?._form?.[0] || state.errors?.email?.[0] || "Please check the form for errors.";
+      const errorDescription = state.errors?._form?.[0] 
+        || state.errors?.email?.[0] 
+        || state.errors?.otherLanguage?.[0]
+        || "Please check the form for errors.";
       toast({
         variant: "destructive",
         title: "Submission Error",
@@ -105,17 +129,14 @@ export function LeadIntakeForm() {
               <Label htmlFor="language">Language</Label>
               <div className="relative flex items-center">
                  <Languages className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
-                <Select name="language">
+                <Select name="language" onValueChange={setSelectedLanguage}>
                   <SelectTrigger className="pl-10" aria-describedby="language-error">
                     <SelectValue placeholder="Select a language" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="english">English</SelectItem>
-                    <SelectItem value="portuguese">Portuguese</SelectItem>
-                    <SelectItem value="spanish">Spanish</SelectItem>
-                    <SelectItem value="japanese">Japanese</SelectItem>
-                    <SelectItem value="chinese">Chinese</SelectItem>
-                    <SelectItem value="hindi">Hindi</SelectItem>
+                    {languages.map(lang => (
+                      <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -141,6 +162,14 @@ export function LeadIntakeForm() {
             </div>
           </div>
           
+          {selectedLanguage === 'other' && (
+            <div className="space-y-2">
+              <Label htmlFor="otherLanguage">Other Language</Label>
+              <Input id="otherLanguage" name="otherLanguage" placeholder="Type the language name" required aria-describedby="other-language-error" />
+              {state.errors?.otherLanguage && <p id="other-language-error" className="text-sm font-medium text-destructive">{state.errors.otherLanguage[0]}</p>}
+            </div>
+          )}
+
           {state.errors?._form && <p className="text-sm font-medium text-destructive">{state.errors._form[0]}</p>}
           
           <SubmitButton />
