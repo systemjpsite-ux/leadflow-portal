@@ -72,7 +72,6 @@ export async function registerLead(
   const { name, email, niche, language: languageInput } = validatedFields.data;
   const emailId = email.toLowerCase();
   
-  // Derivar valores automaticamente
   const agentOrigin = nicheToAgentOrigin[niche];
   const { languageCode, countryCode, countryName } = getLocaleDetails(languageInput);
   const nicheCollection = nicheToCollection[niche];
@@ -81,10 +80,10 @@ export async function registerLead(
     name,
     email: emailId,
     niche,
-    languageInput,
-    languageCode,
-    countryCode,
-    countryName,
+    languageInput, // The original text typed by the agent
+    languageCode,  // The detected ISO language code
+    countryCode,   // The detected ISO country code
+    countryName,   // The detected country name
     agentOrigin,
     status: 'new',
     createdAt: serverTimestamp(),
@@ -93,21 +92,21 @@ export async function registerLead(
   try {
     const batch = writeBatch(db);
 
-    // 1. Coleção principal de leads
+    // 1. Main leads collection
     const leadRef = doc(db, 'leads', emailId);
     batch.set(leadRef, leadData);
 
-    // 2. Coleção de Países
+    // 2. Countries collection
     const countryLeadRef = doc(db, `pais/${countryCode}/leads`, emailId);
     batch.set(countryLeadRef, { registeredAt: serverTimestamp() });
 
-    // 3. Coleção de Nicho
+    // 3. Niche-specific collection
     if (nicheCollection) {
       const nicheLeadRef = doc(db, nicheCollection, emailId);
+      // For niche collections, we store the full lead data as well
       batch.set(nicheLeadRef, leadData);
     }
     
-    // Commitar o batch com todas as escritas
     await batch.commit();
 
     console.log('Lead saved successfully across multiple collections:', emailId);
@@ -116,7 +115,6 @@ export async function registerLead(
   } catch (error) {
     console.error('Error registering lead with batch write:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
-    // Evitar expor erros detalhados ao cliente em produção
     if (errorMessage.includes('permission-denied')) {
        return {
         success: false,
