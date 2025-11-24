@@ -48,12 +48,14 @@ export function LeadIntakeForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [niche, setNiche] = useState<string | undefined>();
   const [agentOrigin, setAgentOrigin] = useState<string | undefined>();
+  const [language, setLanguage] = useState<string>('');
 
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset();
       setNiche(undefined);
       setAgentOrigin(undefined);
+      setLanguage('');
     }
   }, [state]);
 
@@ -104,6 +106,7 @@ export function LeadIntakeForm() {
                 placeholder="e.g., Jane Doe"
                 className="pl-10"
                 autoComplete="off"
+                required
               />
             </div>
             {state.fieldErrors?.name && (
@@ -124,6 +127,7 @@ export function LeadIntakeForm() {
                 placeholder="e.g., jane.doe@example.com"
                 className="pl-10"
                 autoComplete="off"
+                required
               />
             </div>
             {state.fieldErrors?.email && (
@@ -154,10 +158,11 @@ export function LeadIntakeForm() {
                   key={value}
                   htmlFor={value}
                   className={cn(
-                    'flex flex-col items-center justify-center space-y-2 rounded-md border p-4 transition-colors hover:bg-accent/50 cursor-pointer',
+                    'flex flex-col items-center justify-center space-y-2 rounded-md border p-4 cursor-pointer transition-colors duration-200',
+                    'hover:bg-gray-100 dark:hover:bg-accent/50',
                     niche === value
-                      ? 'border-primary ring-2 ring-primary bg-accent/50'
-                      : 'border-input'
+                      ? 'bg-green-100 border-green-500 text-green-700'
+                      : 'border-input bg-transparent text-foreground'
                   )}
                 >
                   <RadioGroupItem value={value} id={value} className="sr-only" />
@@ -183,6 +188,9 @@ export function LeadIntakeForm() {
                   name="language"
                   placeholder="e.g., English, Japanese"
                   className="pl-10"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  required
                 />
               </div>
               {state.fieldErrors?.language && (
@@ -194,7 +202,7 @@ export function LeadIntakeForm() {
 
             <div className="space-y-2">
               <Label htmlFor="agentOrigin">Agent Origin</Label>
-              <Select name="agentOrigin" onValueChange={setAgentOrigin} value={agentOrigin}>
+              <Select name="agentOrigin" onValueChange={setAgentOrigin} value={agentOrigin} required>
                 <SelectTrigger className="pl-10">
                   <UserCheck className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
                   <SelectValue placeholder="Selecione a origem do agente..." />
