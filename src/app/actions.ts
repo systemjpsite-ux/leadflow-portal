@@ -21,7 +21,7 @@ const leadSchema = z.object({
   name: z.string().min(1, { message: "Full name is required." }),
   email: z.string().email({ message: "Invalid email address." }),
   niche: z.string().min(1, { message: "Please select a niche." }),
-  language: z.string().min(1, { message: "Please select a language." }),
+  language: z.string().trim().min(1, { message: "Please enter a language." }).max(50, { message: "Language must be 50 characters or less." }),
   agentOrigin: z.string().min(1, { message: "Please select an agent origin." }),
 });
 

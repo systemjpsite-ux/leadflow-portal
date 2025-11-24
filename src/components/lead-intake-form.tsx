@@ -13,15 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DollarSign, HeartHandshake, HeartPulse, Loader2, Mail, User, UserCheck, Terminal, Languages } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-const languages = [
-  { code: 'en', label: 'English' },
-  { code: 'pt', label: 'Portuguese' },
-  { code: 'es', label: 'Spanish' },
-  { code: 'ja', label: 'Japanese' },
-  { code: 'zh-CN', label: 'Chinese' },
-  { code: 'hi', label: 'Hindi' },
-];
-
 const initialState: LeadState = {
   success: false,
   fieldErrors: {},
@@ -100,17 +91,10 @@ export function LeadIntakeForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
-              <Select name="language">
-                <SelectTrigger className="pl-10">
-                  <Languages className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
-                  <SelectValue placeholder="Select a language..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {languages.map((lang) => (
-                    <SelectItem key={lang.code} value={lang.label}>{lang.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="relative flex items-center">
+                <Languages className="absolute left-3 h-5 w-5 text-muted-foreground" />
+                <Input id="language" name="language" placeholder="e.g., English, Japanese" required className="pl-10" />
+              </div>
               {state?.fieldErrors?.language && <p className="text-sm font-medium text-destructive">{state.fieldErrors.language[0]}</p>}
             </div>
 
