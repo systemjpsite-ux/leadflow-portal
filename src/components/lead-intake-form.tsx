@@ -64,7 +64,7 @@ export function LeadIntakeForm() {
         {state.success && state.message && (
           <Alert
             variant="default"
-            className="mb-4 bg-accent text-accent-foreground"
+            className="mb-4 bg-green-100 border-green-200 text-green-800"
           >
             <AlertTitle>Success!</AlertTitle>
             <AlertDescription>{state.message}</AlertDescription>
@@ -74,6 +74,7 @@ export function LeadIntakeForm() {
           <Alert variant="destructive" className="mb-4">
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{state.formError}</AlertDescription>
+
           </Alert>
         )}
         <form
