@@ -20,16 +20,15 @@ export async function registerLead(
   try {
     const name = String(formData.get("name") || "").trim();
     const email = String(formData.get("email") || "").trim().toLowerCase();
-    const niche = String(formData.get("niche") || "").trim(); // "health" | "wealth" | "relationships"
+    const rawNiche = String(formData.get("niche") || "").trim(); // pode vir "Health", "Wealth", etc.
     const language = String(formData.get("language") || "").trim();
-    const country = String(formData.get("country") || "").trim(); // novo campo do formulário
-    const agentOrigin = String(formData.get("agentOrigin") || "").trim();
+    const country = String(formData.get("country") || "").trim(); // campo que o agente preenche
 
     const fieldErrors: Record<string, string> = {};
 
     if (!name) fieldErrors.name = "Name is required";
     if (!email) fieldErrors.email = "Email is required";
-    if (!niche) fieldErrors.niche = "Niche is required";
+    if (!rawNiche) fieldErrors.niche = "Niche is required";
     if (!language) fieldErrors.language = "Language is required";
     if (!country) fieldErrors.country = "Country is required";
 
@@ -43,11 +42,24 @@ export async function registerLead(
 
     const now = serverTimestamp();
 
-    // Dados que serão gravados em todos os lugares
+    // Normalizar nicho só para lógica interna
+    const nicheNormalized = rawNiche.toLowerCase();
+
+    // Gerar agentOrigin automaticamente com base no nicho
+    let agentOrigin = "";
+    if (nicheNormalized === "health") {
+      agentOrigin = "Health Sales Agent";
+    } else if (nicheNormalized === "wealth") {
+      agentOrigin = "Wealth Sales Agent";
+    } else if (nicheNormalized === "relationships") {
+      agentOrigin = "Relationship Sales Agent";
+    }
+
+    // Dados gravados em todos os lugares
     const leadData = {
       name,
       email,
-      niche,
+      niche: rawNiche,        // mantém como o agente digitou/selecionou
       language,
       country,
       agentOrigin,
@@ -55,14 +67,13 @@ export async function registerLead(
       createdAt: now,
     };
 
-    // Normalizar countryId para usar no caminho do Firestore
-    // Ex: "Brazil" -> "BRAZIL", "United States" -> "UNITED-STATES"
+    // countryId para usar como ID de documento em /pais
     const countryId = country
       .trim()
       .toUpperCase()
-      .replace(/\s+/g, "-");
+      .replace(/\s+/g, "-"); // "Brazil" -> "BRAZIL"
 
-    // 1) Garantir que o documento do país exista
+    // 1) Documento do país
     const countryRef = doc(db, "pais", countryId);
     await setDoc(
       countryRef,
@@ -74,36 +85,36 @@ export async function registerLead(
       { merge: true }
     );
 
-    // 2) Coleção principal de leads (global)
+    const writes: Promise<any>[] = [];
+
+    // 2) Coleção global de leads
     const mainLeadRef = doc(db, "leads", email);
+    writes.push(setDoc(mainLeadRef, leadData, { merge: true }));
 
     // 3) Leads dentro do país
     const countryLeadRef = doc(db, "pais", countryId, "leads", email);
-
-    // 4) Mapear nicho → coleção
-    let nicheCollectionId: "saude" | "dinheiro" | "relacionamento" | null = null;
-    if (niche === "Health") nicheCollectionId = "saude";
-    else if (niche === "Wealth") nicheCollectionId = "dinheiro";
-    else if (niche === "Relationships") nicheCollectionId = "relacionamento";
-
-    const writes: Promise<any>[] = [];
-
-    // gravação global
-    writes.push(setDoc(mainLeadRef, leadData, { merge: true }));
-
-    // gravação por país (subcoleção leads)
     writes.push(setDoc(countryLeadRef, leadData, { merge: true }));
 
-    // gravação por nicho (global e por país)
+    // 4) Mapear nicho → coleções (case-insensitive)
+    let nicheCollectionId: "saude" | "dinheiro" | "relacionamento" | null = null;
+    if (nicheNormalized === "health") {
+      nicheCollectionId = "saude";
+    } else if (nicheNormalized === "wealth") {
+      nicheCollectionId = "dinheiro";
+    } else if (nicheNormalized === "relationships") {
+      nicheCollectionId = "relacionamento";
+    }
+
+    // 5) Gravação por nicho (global + por país)
     if (nicheCollectionId) {
-      const rootNicheRef = doc(db, nicheCollectionId, email); // saude/dinheiro/relacionamento
+      const rootNicheRef = doc(db, nicheCollectionId, email);
       const countryNicheRef = doc(
         db,
         "pais",
         countryId,
         nicheCollectionId,
         email
-      ); // pais/{countryId}/saude|dinheiro|relacionamento/{email}
+      );
 
       writes.push(
         setDoc(rootNicheRef, leadData, { merge: true }),
