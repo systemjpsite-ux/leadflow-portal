@@ -62,16 +62,19 @@ export function LeadIntakeForm() {
       </CardHeader>
       <CardContent>
         {state.success && state.message && (
-          <Alert variant="default" className="mb-4 bg-green-100 border-green-400 text-green-700">
+          <Alert
+            variant="default"
+            className="mb-4 bg-accent text-accent-foreground"
+          >
             <AlertTitle>Success!</AlertTitle>
             <AlertDescription>{state.message}</AlertDescription>
           </Alert>
         )}
         {state.formError && (
-           <Alert variant="destructive" className="mb-4">
-             <AlertTitle>Error</AlertTitle>
-             <AlertDescription>{state.formError}</AlertDescription>
-           </Alert>
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{state.formError}</AlertDescription>
+          </Alert>
         )}
         <form
           ref={formRef}
@@ -92,7 +95,11 @@ export function LeadIntakeForm() {
                 autoComplete="off"
               />
             </div>
-            {state.fieldErrors?.name && <p className="text-red-500 text-sm mt-1">{state.fieldErrors.name}</p>}
+            {state.fieldErrors?.name && (
+              <p className="text-red-500 text-sm mt-1">
+                {state.fieldErrors.name}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -108,7 +115,11 @@ export function LeadIntakeForm() {
                 autoComplete="off"
               />
             </div>
-            {state.fieldErrors?.email && <p className="text-red-500 text-sm mt-1">{state.fieldErrors.email}</p>}
+            {state.fieldErrors?.email && (
+              <p className="text-red-500 text-sm mt-1">
+                {state.fieldErrors.email}
+              </p>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -116,7 +127,6 @@ export function LeadIntakeForm() {
             <RadioGroup
               name="niche"
               className="grid grid-cols-1 sm:grid-cols-3 gap-4"
-              defaultValue="Health"
             >
               <div className="flex items-center space-x-2 rounded-md border border-input p-4 hover:bg-accent/50 transition-colors">
                 <RadioGroupItem value="Health" id="health" />
@@ -146,22 +156,35 @@ export function LeadIntakeForm() {
                 </Label>
               </div>
             </RadioGroup>
-             {state.fieldErrors?.niche && <p className="text-red-500 text-sm mt-1">{state.fieldErrors.niche}</p>}
+            {state.fieldErrors?.niche && (
+              <p className="text-red-500 text-sm mt-1">
+                {state.fieldErrors.niche}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
-              <div className="relative flex items-center">
-                <Languages className="absolute left-3 h-5 w-5 text-muted-foreground" />
-                <Input
-                  id="language"
-                  name="language"
-                  placeholder="e.g., English, Japanese"
-                  className="pl-10"
-                />
-              </div>
-               {state.fieldErrors?.language && <p className="text-red-500 text-sm mt-1">{state.fieldErrors.language}</p>}
+               <Select name="language">
+                <SelectTrigger className="pl-10">
+                  <Languages className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
+                  <SelectValue placeholder="Select a language..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="English">English</SelectItem>
+                  <SelectItem value="Portuguese">Portuguese</SelectItem>
+                  <SelectItem value="Spanish">Spanish</SelectItem>
+                  <SelectItem value="Japanese">Japanese</SelectItem>
+                  <SelectItem value="Chinese">Chinese</SelectItem>
+                  <SelectItem value="Hindi">Hindi</SelectItem>
+                </SelectContent>
+              </Select>
+              {state.fieldErrors?.language && (
+                <p className="text-red-500 text-sm mt-1">
+                  {state.fieldErrors.language}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -181,7 +204,11 @@ export function LeadIntakeForm() {
                   <SelectItem value="Love Sales Agent">Love Sales Agent</SelectItem>
                 </SelectContent>
               </Select>
-               {state.fieldErrors?.agentOrigin && <p className="text-red-500 text-sm mt-1">{state.fieldErrors.agentOrigin}</p>}
+              {state.fieldErrors?.agentOrigin && (
+                <p className="text-red-500 text-sm mt-1">
+                  {state.fieldErrors.agentOrigin}
+                </p>
+              )}
             </div>
           </div>
           <SubmitButton />

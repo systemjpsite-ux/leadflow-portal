@@ -2,7 +2,13 @@
 
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { FieldValue } from 'firebase-admin/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 
 export type RegisterLeadResult = {
   success: boolean;
@@ -21,7 +27,7 @@ const leadSchema = z.object({
   name: z.string().trim().min(1, { message: 'Name is required' }),
   email: z.string().trim().email({ message: 'Invalid email address' }),
   niche: z.string().min(1, { message: 'Niche is required' }),
-  language: z.string().trim().min(1, { message: 'Language is required' }).max(50),
+  language: z.string().trim().min(1, { message: 'Language is required' }),
   agentOrigin: z.string().min(1, { message: 'Agent origin is required' }),
 });
 
@@ -53,28 +59,28 @@ export async function registerLead(
       formError: 'Please correct the errors below.',
     };
   }
-  
+
   const { name, email, niche, language, agentOrigin } = validatedFields.data;
 
   try {
-    const leadRef = db.collection('leads').doc(email.toLowerCase());
-    const doc = await leadRef.get();
+    const leadRef = doc(db, 'leads', email.toLowerCase());
+    const docSnap = await getDoc(leadRef);
 
-    if (doc.exists) {
+    if (docSnap.exists()) {
       return {
         success: false,
         fieldErrors: { email: 'This email is already registered.' },
         formError: 'Please use a different email address.',
       };
     }
-    
-    await leadRef.set({
+
+    await setDoc(leadRef, {
       name,
       email: email.toLowerCase(),
       niche,
       language,
       agentOrigin,
-      createdAt: FieldValue.serverTimestamp(),
+      createdAt: serverTimestamp(),
       status: 'new',
     });
 
@@ -88,7 +94,7 @@ export async function registerLead(
       formError:
         'Internal error while saving lead: ' +
         (error instanceof Error ? error.message : String(error)),
-      fieldErrors: {}
+      fieldErrors: {},
     };
   }
 }
