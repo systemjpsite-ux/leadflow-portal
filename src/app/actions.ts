@@ -22,7 +22,7 @@ export async function registerLead(
     const email = (formData.get("email") || "").toString().trim().toLowerCase();
     const niche = (formData.get("niche") || "").toString().trim(); // "health" | "wealth" | "relationships"
     const language = (formData.get("language") || "").toString().trim();
-    const countryInput = (formData.get("country") || "").toString().trim();
+    const country = (formData.get("country") || "").toString().trim();
 
     const fieldErrors: Record<string, string> = {};
 
@@ -30,8 +30,8 @@ export async function registerLead(
     if (!email) fieldErrors.email = "Email is required";
     if (!niche) fieldErrors.niche = "Niche is required";
     if (!language) fieldErrors.language = "Language is required";
-    if (!countryInput) fieldErrors.country = "Country is required";
-    
+    if (!country) fieldErrors.country = "Country is required";
+
     if (Object.keys(fieldErrors).length > 0) {
       return {
         success: false,
@@ -41,8 +41,7 @@ export async function registerLead(
     }
     
     // Normalize country
-    const countryId = countryInput.trim().toUpperCase();   // e.g. "BRASIL"
-    const countryName = countryInput.trim(); // e.g. "brasil"
+    const countryId = country.trim().toUpperCase();
 
     // Map niche to Firestore collection ids
     let nicheCollectionId: "saude" | "dinheiro" | "relacionamento";
@@ -72,8 +71,8 @@ export async function registerLead(
       email,
       niche,
       language,
-      country: countryName,
-      countryId,
+      country: country,
+      countryId: countryId,
       agentOrigin,
       status: "new",
       createdAt: now,
@@ -97,8 +96,8 @@ export async function registerLead(
       setDoc(
         countryRef,
         {
-          countryId,
-          countryName,
+          countryId: countryId,
+          countryName: country,
           updatedAt: now,
         },
         { merge: true }
@@ -109,15 +108,6 @@ export async function registerLead(
     writes.push(
       setDoc(
         doc(db, "pais", countryId, "leads", email),
-        leadData,
-        { merge: true }
-      )
-    );
-
-    // 5) Country → niche subcollection (saude/dinheiro/relacionamento)
-    writes.push(
-      setDoc(
-        doc(db, "pais", countryId, nicheCollectionId, email),
         leadData,
         { merge: true }
       )
