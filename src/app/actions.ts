@@ -48,32 +48,30 @@ export async function registerLead(
     // Gerar agentOrigin automaticamente com base no nicho
     let agentOrigin = "";
     if (nicheNormalized === "health") {
-      agentOrigin = "Health Sales Agent";
+      agentOrigin = "Vendedor de Saúde";
     } else if (nicheNormalized === "wealth") {
-      agentOrigin = "Wealth Sales Agent";
+      agentOrigin = "Vendedor de Dinheiro";
     } else if (nicheNormalized === "relationships") {
-      agentOrigin = "Relationship Sales Agent";
+      agentOrigin = "Vendedor de Relacionamento";
     }
+
+    // countryId para usar como ID de documento em /pais
+    const countryId = country.toUpperCase(); // "Brazil" -> "BRAZIL"
 
     // Dados gravados em todos os lugares
     const leadData = {
       name,
       email,
-      niche: rawNiche,        // mantém como o agente digitou/selecionou
+      niche: rawNiche,
       language,
       country,
+      countryId,
       agentOrigin,
       status: "new",
       createdAt: now,
     };
 
-    // countryId para usar como ID de documento em /pais
-    const countryId = country
-      .trim()
-      .toUpperCase()
-      .replace(/\s+/g, "-"); // "Brazil" -> "BRAZIL"
-
-    // 1) Documento do país
+    // 1) Documento do país - metadados
     const countryRef = doc(db, "pais", countryId);
     await setDoc(
       countryRef,
@@ -88,14 +86,12 @@ export async function registerLead(
     const writes: Promise<any>[] = [];
 
     // 2) Coleção global de leads
-    const mainLeadRef = doc(db, "leads", email);
-    writes.push(setDoc(mainLeadRef, leadData, { merge: true }));
+    writes.push(setDoc(doc(db, "leads", email), leadData, { merge: true }));
 
     // 3) Leads dentro do país
-    const countryLeadRef = doc(db, "pais", countryId, "leads", email);
-    writes.push(setDoc(countryLeadRef, leadData, { merge: true }));
+    writes.push(setDoc(doc(db, "pais", countryId, "leads", email), leadData, { merge: true }));
 
-    // 4) Mapear nicho → coleções (case-insensitive)
+    // 4) Mapear nicho → coleções
     let nicheCollectionId: "saude" | "dinheiro" | "relacionamento" | null = null;
     if (nicheNormalized === "health") {
       nicheCollectionId = "saude";
@@ -107,19 +103,33 @@ export async function registerLead(
 
     // 5) Gravação por nicho (global + por país)
     if (nicheCollectionId) {
-      const rootNicheRef = doc(db, nicheCollectionId, email);
-      const countryNicheRef = doc(
-        db,
-        "pais",
-        countryId,
-        nicheCollectionId,
-        email
-      );
+      // Coleção de nicho global
+      writes.push(setDoc(doc(db, nicheCollectionId, email), leadData, { merge: true }));
 
+      // Coleção de nicho DENTRO do país
       writes.push(
-        setDoc(rootNicheRef, leadData, { merge: true }),
-        setDoc(countryNicheRef, leadData, { merge: true })
+        setDoc(
+          doc(db, "pais", countryId, nicheCollectionId, email),
+          leadData,
+          { merge: true }
+        )
       );
+    }
+    
+    // 6) Garantir que subcoleções existam com __meta
+    const metaDoc = {
+        type: "meta",
+        createdAt: serverTimestamp(),
+    };
+    
+    for (const coll of ["leads", "saude", "dinheiro", "relacionamento"]) {
+        writes.push(
+            setDoc(
+                doc(db, "pais", countryId, coll, "__meta"),
+                metaDoc,
+                { merge: true }
+            )
+        );
     }
 
     // Executar todas as gravações
