@@ -41,6 +41,15 @@ function SubmitButton() {
   );
 }
 
+const LANGUAGE_OPTIONS = [
+  "English",
+  "Portuguese",
+  "Spanish",
+  "Japanese",
+  "Chinese",
+  "Hindi",
+];
+
 export function LeadIntakeForm() {
   const initialState: RegisterLeadResult = { success: false, fieldErrors: {} };
   const [state, formAction] = useActionState(registerLead, initialState);
@@ -168,17 +177,16 @@ export function LeadIntakeForm() {
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
                <Select name="language">
-                <SelectTrigger className="pl-10">
+                <SelectTrigger id="language" className="pl-10">
                   <Languages className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
                   <SelectValue placeholder="Select a language..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="Portuguese">Portuguese</SelectItem>
-                  <SelectItem value="Spanish">Spanish</SelectItem>
-                  <SelectItem value="Japanese">Japanese</SelectItem>
-                  <SelectItem value="Chinese">Chinese</SelectItem>
-                  <SelectItem value="Hindi">Hindi</SelectItem>
+                  {LANGUAGE_OPTIONS.map((lang) => (
+                    <SelectItem key={lang} value={lang}>
+                      {lang}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {state.fieldErrors?.language && (
