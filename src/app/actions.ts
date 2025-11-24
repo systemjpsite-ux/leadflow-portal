@@ -161,9 +161,9 @@ export async function registerLead(
     const leadRef = doc(db, 'leads', emailId);
     batch.set(leadRef, leadData);
 
-    // 2. Countries collection
-    if (countryCode && countryCode !== 'N/A') {
-        const countryLeadRef = doc(db, `pais/${countryCode}/leads`, emailId);
+    // 2. Countries collection (using countryName as document ID)
+    if (countryName && countryName !== 'Unknown') {
+        const countryLeadRef = doc(db, `pais/${countryName}/leads`, emailId);
         batch.set(countryLeadRef, countryLeadData);
     }
     
