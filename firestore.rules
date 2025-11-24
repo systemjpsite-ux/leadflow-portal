@@ -1,9 +1,40 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Regra principal para a coleção 'leads'
     match /leads/{leadId} {
+      allow create: if true; // Qualquer pessoa pode criar um lead
+      allow read, write, delete: if false; // Ninguém pode ler, alterar ou deletar leads diretamente
+    }
+    
+    // Regras para a coleção de nicho 'saude'
+    match /saude/{leadId} {
       allow create: if true;
       allow read, write, delete: if false;
+    }
+    
+    // Regras para a coleção de nicho 'dinheiro'
+    match /dinheiro/{leadId} {
+      allow create: if true;
+      allow read, write, delete: if false;
+    }
+    
+    // Regras para a coleção de nicho 'relacionamento'
+    match /relacionamento/{leadId} {
+      allow create: if true;
+      allow read, write, delete: if false;
+    }
+    
+    // Regras para a coleção aninhada de países
+    match /pais/{countryCode} {
+      // Permite a criação do documento do país se ele ainda não existir
+      allow create, write: if true;
+      allow read, delete: if false;
+      
+      match /leads/{leadId} {
+        allow create: if true;
+        allow read, write, delete: if false;
+      }
     }
   }
 }

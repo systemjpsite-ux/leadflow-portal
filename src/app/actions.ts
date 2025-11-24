@@ -4,10 +4,10 @@ import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import {
   doc,
-  getDoc,
-  setDoc,
+  writeBatch,
   serverTimestamp,
 } from 'firebase/firestore';
+import { getLocaleDetails } from '@/lib/locale';
 
 export type RegisterLeadResult = {
   success: boolean;
@@ -17,7 +17,6 @@ export type RegisterLeadResult = {
     email?: string;
     niche?: string;
     language?: string;
-    agentOrigin?: string;
   };
   formError?: string;
 };
@@ -25,24 +24,23 @@ export type RegisterLeadResult = {
 const leadSchema = z.object({
   name: z.string().trim().min(1, { message: 'Name is required' }),
   email: z.string().trim().email({ message: 'Invalid email address' }),
-  niche: z.string().min(1, { message: 'Niche is required' }),
+  niche: z.enum(['Health', 'Wealth', 'Relationships'], {
+    errorMap: () => ({ message: 'Niche is required' }),
+  }),
   language: z.string().trim().min(1, { message: 'Language is required' }),
-  agentOrigin: z.string().min(1, { message: 'Agent origin is required' }),
 });
 
-const languageToCountry: Record<string, string> = {
-  japanese: 'Japan',
-  portuguese: 'Brazil',
-  spanish: 'Spain',
-  english: 'United States',
-  chinese: 'China',
-  hindi: 'India',
+const nicheToAgentOrigin: Record<string, string> = {
+  Health: 'Vendedor de Saúde',
+  Wealth: 'Vendedor de Dinheiro',
+  Relationships: 'Vendedor de Relacionamento',
 };
 
-function getCountryFromLanguage(language: string): string {
-  const normalizedLanguage = language.trim().toLowerCase();
-  return languageToCountry[normalizedLanguage] || 'Unknown';
-}
+const nicheToCollection: Record<string, string> = {
+  Health: 'saude',
+  Wealth: 'dinheiro',
+  Relationships: 'relacionamento',
+};
 
 export async function registerLead(
   prevState: RegisterLeadResult,
@@ -53,7 +51,6 @@ export async function registerLead(
     email: formData.get('email'),
     niche: formData.get('niche'),
     language: formData.get('language'),
-    agentOrigin: formData.get('agentOrigin'),
   };
 
   const validatedFields = leadSchema.safeParse(rawData);
@@ -67,48 +64,69 @@ export async function registerLead(
         email: fieldErrors.email?.[0],
         niche: fieldErrors.niche?.[0],
         language: fieldErrors.language?.[0],
-        agentOrigin: fieldErrors.agentOrigin?.[0],
       },
       formError: 'Please correct the errors below.',
     };
   }
 
-  const { name, email, niche, language, agentOrigin } = validatedFields.data;
-  const country = getCountryFromLanguage(language);
+  const { name, email, niche, language: languageInput } = validatedFields.data;
+  const emailId = email.toLowerCase();
+  
+  // Derivar valores automaticamente
+  const agentOrigin = nicheToAgentOrigin[niche];
+  const { languageCode, countryCode, countryName } = getLocaleDetails(languageInput);
+  const nicheCollection = nicheToCollection[niche];
+
+  const leadData = {
+    name,
+    email: emailId,
+    niche,
+    languageInput,
+    languageCode,
+    countryCode,
+    countryName,
+    agentOrigin,
+    status: 'new',
+    createdAt: serverTimestamp(),
+  };
 
   try {
-    const leadRef = doc(db, 'leads', email.toLowerCase());
-    const docSnap = await getDoc(leadRef);
+    const batch = writeBatch(db);
 
-    if (docSnap.exists()) {
-      return {
+    // 1. Coleção principal de leads
+    const leadRef = doc(db, 'leads', emailId);
+    batch.set(leadRef, leadData);
+
+    // 2. Coleção de Países
+    const countryLeadRef = doc(db, `pais/${countryCode}/leads`, emailId);
+    batch.set(countryLeadRef, { registeredAt: serverTimestamp() });
+
+    // 3. Coleção de Nicho
+    if (nicheCollection) {
+      const nicheLeadRef = doc(db, nicheCollection, emailId);
+      batch.set(nicheLeadRef, leadData);
+    }
+    
+    // Commitar o batch com todas as escritas
+    await batch.commit();
+
+    console.log('Lead saved successfully across multiple collections:', emailId);
+
+    return { success: true, message: 'Lead registered successfully!' };
+  } catch (error) {
+    console.error('Error registering lead with batch write:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    // Evitar expor erros detalhados ao cliente em produção
+    if (errorMessage.includes('permission-denied')) {
+       return {
         success: false,
-        fieldErrors: { email: 'This email is already registered.' },
-        formError: 'Please use a different email address.',
+        formError: 'You do not have permission to perform this action.',
+        fieldErrors: {},
       };
     }
-
-    await setDoc(leadRef, {
-      name,
-      email: email.toLowerCase(),
-      niche,
-      language,
-      country,
-      agentOrigin,
-      createdAt: serverTimestamp(),
-      status: 'new',
-    });
-
-    console.log('Lead saved:', email);
-
-    return { success: true, message: 'Lead registered successfully.' };
-  } catch (error) {
-    console.error('registerLead error', error);
     return {
       success: false,
-      formError:
-        'Internal error while saving lead: ' +
-        (error instanceof Error ? error.message : String(error)),
+      formError: 'An internal error occurred while saving the lead.',
       fieldErrors: {},
     };
   }

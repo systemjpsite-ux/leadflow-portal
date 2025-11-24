@@ -19,9 +19,8 @@ import {
   Languages,
   Mail,
   User,
-  UserCheck,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useActionState, useState } from 'react';
+import { useEffect, useRef, useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { cn } from '@/lib/utils';
@@ -36,26 +35,18 @@ function SubmitButton() {
   );
 }
 
+const NicheOptions = [
+  { value: 'Health', label: 'Health', icon: HeartPulse },
+  { value: 'Wealth', label: 'Wealth', icon: DollarSign },
+  { value: 'Relationships', label: 'Relationships', icon: HeartHandshake },
+];
+
 export function LeadIntakeForm() {
   const initialState: RegisterLeadResult = { success: false, fieldErrors: {} };
   const [state, formAction] = useActionState(registerLead, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const [niche, setNiche] = useState<string | undefined>();
-  const [language, setLanguage] = useState<string>('');
-
-  const agentOrigin = useMemo(() => {
-    if (!niche) return '';
-    switch (niche) {
-      case 'Health':
-        return 'Vendedor de Saúde';
-      case 'Wealth':
-        return 'Vendedor de Dinheiro';
-      case 'Relationships':
-        return 'Vendedor de Relacionamento';
-      default:
-        return '';
-    }
-  }, [niche]);
+  const [language, setLanguage] = useState('');
 
   useEffect(() => {
     if (state.success) {
@@ -101,10 +92,6 @@ export function LeadIntakeForm() {
           noValidate
           autoComplete="off"
         >
-          {agentOrigin && (
-            <input type="hidden" name="agentOrigin" value={agentOrigin} />
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <div className="relative flex items-center">
@@ -155,15 +142,7 @@ export function LeadIntakeForm() {
               className="grid grid-cols-1 sm:grid-cols-3 gap-4"
               required
             >
-              {[
-                { value: 'Health', label: 'Health', icon: HeartPulse },
-                { value: 'Wealth', label: 'Wealth', icon: DollarSign },
-                {
-                  value: 'Relationships',
-                  label: 'Relationships',
-                  icon: HeartHandshake,
-                },
-              ].map(({ value, label: nicheLabel, icon: Icon }) => (
+              {NicheOptions.map(({ value, label: nicheLabel, icon: Icon }) => (
                 <Label
                   key={value}
                   htmlFor={value}
@@ -197,44 +176,27 @@ export function LeadIntakeForm() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
-              <div className="relative flex items-center">
-                <Languages className="absolute left-3 h-5 w-5 text-muted-foreground" />
-                <Input
-                  id="language"
-                  name="language"
-                  placeholder="e.g., english, japanese"
-                  className="pl-10"
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  required
-                />
-              </div>
-              {state.fieldErrors?.language && (
-                <p className="text-red-500 text-sm mt-1">
-                  {state.fieldErrors.language}
-                </p>
-              )}
+          <div className="space-y-2">
+            <Label htmlFor="language">Language</Label>
+            <div className="relative flex items-center">
+              <Languages className="absolute left-3 h-5 w-5 text-muted-foreground" />
+              <Input
+                id="language"
+                name="language"
+                placeholder="e.g., English, Japanese, Portuguese..."
+                className="pl-10"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                required
+              />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="agentOriginDisplay">Agent Origin</Label>
-              <div className="relative flex items-center">
-                <UserCheck className="absolute left-3 h-5 w-5 text-muted-foreground" />
-                <Input
-                  id="agentOriginDisplay"
-                  name="agentOriginDisplay"
-                  placeholder="Selecione um nicho primeiro"
-                  className="pl-10 bg-gray-100 dark:bg-muted"
-                  value={agentOrigin}
-                  readOnly
-                  disabled
-                />
-              </div>
-            </div>
+            {state.fieldErrors?.language && (
+              <p className="text-red-500 text-sm mt-1">
+                {state.fieldErrors.language}
+              </p>
+            )}
           </div>
+          
           <SubmitButton />
         </form>
       </CardContent>
