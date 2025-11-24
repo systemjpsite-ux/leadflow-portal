@@ -71,20 +71,15 @@ export function LeadIntakeForm() {
       });
       formRef.current?.reset();
       setSelectedLanguage('');
-    } else if (state.message) {
-      const errorDescription = state.errors?._form?.[0] 
-        || state.errors?.name?.[0]
-        || state.errors?.email?.[0]
-        || state.errors?.niche?.[0]
-        || state.errors?.language?.[0]
-        || state.errors?.otherLanguage?.[0]
-        || state.errors?.agent?.[0]
-        || "Please check the form for errors.";
-      toast({
-        variant: "destructive",
-        title: "Submission Error",
-        description: errorDescription,
-      });
+    } else if (state.message && state.errors) {
+        const errorDescription = state.errors?._form?.[0] 
+          || Object.values(state.errors).flat()[0]
+          || "Please check the form for errors.";
+        toast({
+          variant: "destructive",
+          title: "Submission Error",
+          description: errorDescription,
+        });
     }
   }, [state, toast]);
 

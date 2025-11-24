@@ -8,7 +8,8 @@ const leadSchema = z.object({
   name: z.string().min(2, { message: "Full name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   niche: z.enum(["health", "wealth", "love"], {
-    errorMap: () => ({ message: "Please select a niche." }),
+    required_error: "Please select a niche.",
+    invalid_type_error: "Please select a niche.",
   }),
   language: z.string().min(1, { message: "Please select a language." }),
   otherLanguage: z.string().optional(),
