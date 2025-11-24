@@ -1,7 +1,7 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { registerLead, type LeadState } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,7 @@ export function LeadIntakeForm() {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedLanguage, setSelectedLanguage] = useState('');
+  const [selectedAgent, setSelectedAgent] = useState('');
   const [popoverOpen, setPopoverOpen] = useState(false)
 
   useEffect(() => {
@@ -71,6 +72,7 @@ export function LeadIntakeForm() {
       });
       formRef.current?.reset();
       setSelectedLanguage('');
+      setSelectedAgent('');
     } else if (state.message && state.errors) {
         const errorDescription = state.errors?._form?.[0] 
           || Object.values(state.errors).flat()[0]
@@ -190,7 +192,8 @@ export function LeadIntakeForm() {
               <Label htmlFor="agent">Agent Origin</Label>
                <div className="relative flex items-center">
                  <UserCheck className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
-                <Select name="agent" aria-describedby="agent-error">
+                 <Input type="hidden" name="agent" value={selectedAgent} />
+                <Select onValueChange={setSelectedAgent} value={selectedAgent} aria-describedby="agent-error">
                   <SelectTrigger className="pl-10">
                     <SelectValue placeholder="Select an agent" />
                   </SelectTrigger>

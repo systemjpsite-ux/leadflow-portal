@@ -9,11 +9,10 @@ const leadSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   niche: z.enum(["health", "wealth", "love"], {
     required_error: "Please select a niche.",
-    invalid_type_error: "Please select a niche.",
   }),
   language: z.string().min(1, { message: "Please select a language." }),
   otherLanguage: z.string().optional(),
-  agent: z.string({ required_error: "Please select an agent origin." }).min(1, { message: "Please select an agent origin." }),
+  agent: z.string().min(1, { message: "Please select an agent origin." }),
 }).refine(data => {
   if (data.language === 'other') {
     return data.otherLanguage && data.otherLanguage.trim().length > 0;
@@ -58,14 +57,16 @@ const languages: { code: string; label: string }[] = [
 ];
 
 export async function registerLead(prevState: LeadState, formData: FormData): Promise<LeadState> {
-  const validatedFields = leadSchema.safeParse({
+  const data = {
     name: formData.get("name"),
     email: formData.get("email"),
     niche: formData.get("niche"),
     language: formData.get("language"),
     otherLanguage: formData.get("otherLanguage"),
     agent: formData.get("agent"),
-  });
+  };
+
+  const validatedFields = leadSchema.safeParse(data);
   
   if (!validatedFields.success) {
     return {
