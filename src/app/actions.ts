@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export type RegisterLeadResult = {
   success: boolean;
@@ -13,18 +14,19 @@ export type RegisterLeadResult = {
     language?: string;
     agentOrigin?: string;
   };
+  formError?: string;
 };
 
 const leadSchema = z.object({
   name: z.string().trim().min(1, { message: 'Name is required' }),
   email: z.string().trim().email({ message: 'Invalid email address' }),
   niche: z.string().min(1, { message: 'Niche is required' }),
-  language: z.string().trim().min(1, { message: 'Language is required' }),
+  language: z.string().trim().min(1, { message: 'Language is required' }).max(50),
   agentOrigin: z.string().min(1, { message: 'Agent origin is required' }),
 });
 
 export async function registerLead(
-  prevState: RegisterLeadResult | null,
+  prevState: RegisterLeadResult,
   formData: FormData
 ): Promise<RegisterLeadResult> {
   const rawData = {
@@ -48,6 +50,7 @@ export async function registerLead(
         language: fieldErrors.language?.[0],
         agentOrigin: fieldErrors.agentOrigin?.[0],
       },
+      formError: 'Please correct the errors below.',
     };
   }
   
@@ -55,6 +58,15 @@ export async function registerLead(
 
   try {
     const leadRef = db.collection('leads').doc(email.toLowerCase());
+    const doc = await leadRef.get();
+
+    if (doc.exists) {
+      return {
+        success: false,
+        fieldErrors: { email: 'This email is already registered.' },
+        formError: 'Please use a different email address.',
+      };
+    }
     
     await leadRef.set({
       name,
@@ -62,14 +74,21 @@ export async function registerLead(
       niche,
       language,
       agentOrigin,
-      createdAt: new Date().toISOString(),
-    }, { merge: true });
+      createdAt: FieldValue.serverTimestamp(),
+      status: 'new',
+    });
 
     console.log('Lead saved:', email);
 
     return { success: true, message: 'Lead registered successfully.' };
   } catch (error) {
-    console.error('Error saving lead to Firestore:', error);
-    return { success: false, message: 'Internal error while saving lead.' };
+    console.error('registerLead error', error);
+    return {
+      success: false,
+      formError:
+        'Internal error while saving lead: ' +
+        (error instanceof Error ? error.message : String(error)),
+      fieldErrors: {}
+    };
   }
 }
