@@ -51,10 +51,10 @@ export function LeadIntakeForm() {
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset();
-      setNiche(undefined);
-      setLanguage('');
+      setNiche(undefined); // Reset niche state
+      setLanguage('');     // Reset language state
     }
-  }, [state]);
+  }, [state.success]);
 
   return (
     <Card className="w-full max-w-2xl shadow-xl border-0">
