@@ -1,7 +1,7 @@
 
 'use server';
 
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, getDocs, query, where, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export async function registerLead(formData: FormData): Promise<void> {
@@ -11,7 +11,6 @@ export async function registerLead(formData: FormData): Promise<void> {
   const language = String(formData.get("language") ?? "");
   const agentOrigin = String(formData.get("agentOrigin") ?? "");
 
-  // Simple validation: If email is missing, do not proceed.
   if (!email) {
     console.log("Submission skipped: email is empty.");
     return;
@@ -20,16 +19,22 @@ export async function registerLead(formData: FormData): Promise<void> {
   try {
     const leadsRef = collection(db, "leads");
     
-    // For this simplified version, we are not checking for duplicates.
-    // We will just add the new lead.
-    
+    // Check for duplicates before adding
+    const q = query(leadsRef, where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+        console.log(`Submission skipped: email ${email} already exists.`);
+        return;
+    }
+
     await addDoc(leadsRef, {
       name,
       email,
       niche,
       language,
-      agent: agentOrigin,
-      timestamp: serverTimestamp(),
+      agentOrigin,
+      createdAt: serverTimestamp(),
       status: "new",
     });
 
@@ -38,6 +43,7 @@ export async function registerLead(formData: FormData): Promise<void> {
   } catch (error) {
     console.error("Error in registerLead:", error);
     // The action fails silently on the client, but logs the error on the server.
+    // This return ensures no uncaught exceptions are thrown.
     return;
   }
 }

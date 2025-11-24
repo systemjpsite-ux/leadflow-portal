@@ -1,5 +1,5 @@
 
-"use client";
+'use client';
 
 import { registerLead } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -10,15 +10,22 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, HeartHandshake, HeartPulse, Mail, User, UserCheck, Languages } from "lucide-react";
 import { useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export function LeadIntakeForm() {
   const formRef = useRef<HTMLFormElement>(null);
+  const { toast } = useToast();
 
-  // This function will be called by the form's action.
-  // We wrap the server action to reset the form on completion.
   const formAction = async (formData: FormData) => {
+    // This client-side wrapper calls the server action.
     await registerLead(formData);
+
+    // After the action completes, reset the form and show a toast.
     formRef.current?.reset();
+    toast({
+      title: "Submission Received!",
+      description: "Thank you for your submission. We will be in touch shortly.",
+    });
   };
 
   return (
@@ -72,6 +79,7 @@ export function LeadIntakeForm() {
               name="niche"
               className="grid grid-cols-1 sm:grid-cols-3 gap-4"
               required
+              defaultValue="Health"
             >
               <div className="flex items-center space-x-2 rounded-md border border-input p-4 hover:bg-accent/50 transition-colors">
                 <RadioGroupItem value="Health" id="health" />
