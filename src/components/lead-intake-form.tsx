@@ -1,7 +1,7 @@
 
 'use client';
 
-import { registerLead, type RegisterLeadResult } from '@/app/actions';
+import { registerLead, type RegisterLeadState } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -22,11 +22,12 @@ import {
   User,
   Globe,
 } from 'lucide-react';
-import { useEffect, useRef, useActionState, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -44,23 +45,44 @@ const NicheOptions = [
 ];
 
 export function LeadIntakeForm() {
-  const initialState: RegisterLeadResult = { success: false, fieldErrors: {} };
-  const [state, formAction] = useActionState(registerLead, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  const { toast } = useToast();
   
-  // State for controlled components
+  // Local state for UI feedback and controlled components
+  const [submissionState, setSubmissionState] = useState<RegisterLeadState | null>(null);
   const [niche, setNiche] = useState<string | undefined>();
   const [language, setLanguage] = useState('');
   const [country, setCountry] = useState('');
 
-  useEffect(() => {
-    if (state.success) {
+  const handleSubmit = async (formData: FormData) => {
+    // We call the server action directly
+    const result = await registerLead(submissionState!, formData);
+    
+    setSubmissionState(result);
+
+    if (result.success) {
+      toast({
+        title: 'Success!',
+        description: result.message,
+        variant: 'default',
+        className: 'bg-green-100 border-green-200 text-green-800'
+      });
+      // Reset form and state
       formRef.current?.reset();
       setNiche(undefined);
       setLanguage('');
       setCountry('');
+      // Clear validation errors after a successful submission and reset
+      setTimeout(() => setSubmissionState(null), 100); 
+    } else {
+       toast({
+        title: 'Error',
+        description: result.message,
+        variant: 'destructive',
+      });
     }
-  }, [state.success]);
+  };
+
 
   return (
     <Card className="w-full max-w-2xl shadow-xl border-0">
@@ -76,24 +98,17 @@ export function LeadIntakeForm() {
             <Link href="/leads">View Leads Dashboard</Link>
           </Button>
         </div>
-        {state.success && state.message && (
-          <Alert
-            variant="default"
-            className="mb-4 bg-green-100 border-green-200 text-green-800"
-          >
-            <AlertTitle>Success!</AlertTitle>
-            <AlertDescription>{state.message}</AlertDescription>
-          </Alert>
-        )}
-        {state.formError && (
+        
+        {submissionState && !submissionState.success && submissionState.message && !submissionState.fieldErrors && (
           <Alert variant="destructive" className="mb-4">
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{state.formError}</AlertDescription>
+            <AlertDescription>{submissionState.message}</AlertDescription>
           </Alert>
         )}
+
         <form
           ref={formRef}
-          action={formAction}
+          action={handleSubmit}
           className="space-y-6"
           noValidate
           autoComplete="off"
@@ -111,9 +126,9 @@ export function LeadIntakeForm() {
                 required
               />
             </div>
-            {state.fieldErrors?.name && (
+            {submissionState?.fieldErrors?.name && (
               <p className="text-red-500 text-sm mt-1">
-                {state.fieldErrors.name}
+                {submissionState.fieldErrors.name}
               </p>
             )}
           </div>
@@ -132,9 +147,9 @@ export function LeadIntakeForm() {
                 required
               />
             </div>
-            {state.fieldErrors?.email && (
+            {submissionState?.fieldErrors?.email && (
               <p className="text-red-500 text-sm mt-1">
-                {state.fieldErrors.email}
+                {submissionState.fieldErrors.email}
               </p>
             )}
           </div>
@@ -175,9 +190,9 @@ export function LeadIntakeForm() {
                 </Label>
               ))}
             </RadioGroup>
-            {state.fieldErrors?.niche && (
+            {submissionState?.fieldErrors?.niche && (
               <p className="text-red-500 text-sm mt-1">
-                {state.fieldErrors.niche}
+                {submissionState.fieldErrors.niche}
               </p>
             )}
           </div>
@@ -197,9 +212,9 @@ export function LeadIntakeForm() {
                   required
                 />
               </div>
-              {state.fieldErrors?.language && (
+              {submissionState?.fieldErrors?.language && (
                 <p className="text-red-500 text-sm mt-1">
-                  {state.fieldErrors.language}
+                  {submissionState.fieldErrors.language}
                 </p>
               )}
             </div>
@@ -218,9 +233,9 @@ export function LeadIntakeForm() {
                   required
                 />
               </div>
-              {state.fieldErrors?.country && (
+              {submissionState?.fieldErrors?.country && (
                 <p className="text-red-500 text-sm mt-1">
-                  {state.fieldErrors.country}
+                  {submissionState.fieldErrors.country}
                 </p>
               )}
             </div>
