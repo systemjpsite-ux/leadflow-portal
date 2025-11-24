@@ -11,6 +11,16 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Languages, User, Mail, UserCheck, Loader2, HeartPulse, DollarSign, HeartHandshake } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { Check, ChevronsUpDown } from "lucide-react"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
 
 const initialState: LeadState = {
   message: undefined,
@@ -51,6 +61,7 @@ export function LeadIntakeForm() {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedLanguage, setSelectedLanguage] = useState('');
+  const [popoverOpen, setPopoverOpen] = useState(false)
 
   useEffect(() => {
     if (state.success) {
@@ -128,17 +139,49 @@ export function LeadIntakeForm() {
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
               <div className="relative flex items-center">
-                 <Languages className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
-                <Select name="language" onValueChange={setSelectedLanguage}>
-                  <SelectTrigger className="pl-10" aria-describedby="language-error">
-                    <SelectValue placeholder="Select a language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {languages.map(lang => (
-                      <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Languages className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
+                <Input type="hidden" name="language" value={selectedLanguage} />
+                <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={popoverOpen}
+                      className="w-full justify-between pl-10"
+                    >
+                      {selectedLanguage
+                        ? languages.find((language) => language.code === selectedLanguage)?.label
+                        : "Select a language"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search language..." />
+                      <CommandEmpty>No language found.</CommandEmpty>
+                      <CommandGroup>
+                        {languages.map((language) => (
+                          <CommandItem
+                            key={language.code}
+                            value={language.code}
+                            onSelect={(currentValue) => {
+                              setSelectedLanguage(currentValue === selectedLanguage ? "" : currentValue)
+                              setPopoverOpen(false)
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedLanguage === language.code ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {language.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               {state.errors?.language && <p id="language-error" className="text-sm font-medium text-destructive">{state.errors.language[0]}</p>}
             </div>
