@@ -8,24 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, HeartHandshake, HeartPulse, Mail, User, UserCheck, Languages } from "lucide-react";
-import { useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { DollarSign, HeartHandshake, HeartPulse, Languages, Mail, User, UserCheck } from "lucide-react";
+import { useRef } from "react";
 
 export function LeadIntakeForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
 
-  const formAction = async (formData: FormData) => {
-    // This client-side wrapper calls the server action.
+  const handleSubmit = async (formData: FormData) => {
     await registerLead(formData);
-
-    // After the action completes, reset the form and show a toast.
-    formRef.current?.reset();
     toast({
       title: "Submission Received!",
       description: "Thank you for your submission. We will be in touch shortly.",
     });
+    formRef.current?.reset();
   };
 
   return (
@@ -37,7 +34,7 @@ export function LeadIntakeForm() {
       <CardContent>
         <form
           ref={formRef}
-          action={formAction}
+          action={handleSubmit}
           className="space-y-6"
           noValidate
           autoComplete="off"

@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "lead": {
+      "title": "Lead",
+      "description": "Represents a lead captured from the form.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Full name of the lead."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email address of the lead."
+        },
+        "niche": {
+          "type": "string",
+          "description": "The selected niche (Health, Wealth, Relationships)."
+        },
+        "language": {
+          "type": "string",
+          "description": "The language of the lead."
+        },
+        "agentOrigin": {
+          "type": "string",
+          "description": "The origin of the sales agent."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the lead was created."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the lead (e.g., new)."
+        }
+      },
+      "required": [
+        "name",
+        "email",
+        "niche",
+        "language",
+        "agentOrigin",
+        "createdAt",
+        "status"
+      ]
+    }
+  },
+  "auth": {
+    "providers": []
+  },
+  "firestore": {
+    "/leads/{leadId}": {
+      "schema": {
+        "$ref": "#/entities/lead"
+      },
+      "description": "Stores individual lead documents."
+    }
+  }
+}
