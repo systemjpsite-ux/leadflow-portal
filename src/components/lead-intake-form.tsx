@@ -1,41 +1,47 @@
 
 "use client";
 
-import { useRef, useState, type ComponentProps } from "react";
-import { registerLead } from "@/app/actions";
+import { useRef, useState } from "react";
+import { registerLead, type RegisterLeadResult } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, HeartHandshake, HeartPulse, Mail, User, UserCheck, Languages } from "lucide-react";
+import { DollarSign, HeartHandshake, HeartPulse, Mail, User, UserCheck, Languages, AlertCircle, CheckCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function LeadIntakeForm() {
+  const [state, setState] = useState<RegisterLeadResult | null>(null);
+  const [isPending, setIsPending] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  
+  // States for controlled components
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [niche, setNiche] = useState<string | undefined>(undefined);
+  const [niche, setNiche] = useState("");
   const [language, setLanguage] = useState("");
-  const [agentOrigin, setAgentOrigin] = useState<string | undefined>(undefined);
+  const [agentOrigin, setAgentOrigin] = useState("");
 
-  const handleSubmit = async (formData: FormData) => {
-    // We still call the server action, but we can intercept the call
-    // to reset the form on the client-side.
-    await registerLead(formData);
+  const clientAction = async (formData: FormData) => {
+    setIsPending(true);
+    setState(null); // Clear previous state
 
-    // Reset all controlled component states
-    setName("");
-    setEmail("");
-    setNiche(undefined);
-    setLanguage("");
-    setAgentOrigin(undefined);
+    const result = await registerLead(formData);
+    setState(result);
 
-    // Manually reset the radio group visual state if needed, though state change should handle it
-    formRef.current?.reset();
-
-    // Optionally, show a simple alert or a more complex toast notification
-    alert("Form submitted! Thank you.");
+    if (result.success) {
+      // Clear form fields on success
+      setName("");
+      setEmail("");
+      setNiche("");
+      setLanguage("");
+      setAgentOrigin("");
+      formRef.current?.reset(); // Also reset the native form for radio/select visuals
+    }
+    
+    setIsPending(false);
   };
 
   return (
@@ -45,7 +51,25 @@ export function LeadIntakeForm() {
         <CardDescription className="pt-2">Register a new lead by filling out the form below.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form ref={formRef} action={handleSubmit} className="space-y-6" noValidate autoComplete="off">
+        <form
+          ref={formRef}
+          action={clientAction}
+          className="space-y-6"
+          noValidate
+          autoComplete="off"
+        >
+          {state && !state.success && state.message && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{state.message}</AlertDescription>
+            </Alert>
+          )}
+          {state && state.success && state.message && (
+            <Alert variant="default" className="bg-green-100 dark:bg-green-900 border-green-400 dark:border-green-600">
+               <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+               <AlertDescription className="text-green-800 dark:text-green-200">{state.message}</AlertDescription>
+            </Alert>
+          )}
           
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
@@ -54,7 +78,7 @@ export function LeadIntakeForm() {
               <Input 
                 id="name" 
                 name="name" 
-                placeholder="John Doe" 
+                placeholder="e.g., Jane Doe" 
                 required 
                 className="pl-10" 
                 value={name}
@@ -62,6 +86,7 @@ export function LeadIntakeForm() {
                 autoComplete="off"
               />
             </div>
+            {state?.fieldErrors?.name && <p className="text-sm text-destructive">{state.fieldErrors.name}</p>}
           </div>
 
           <div className="space-y-2">
@@ -72,7 +97,7 @@ export function LeadIntakeForm() {
                 id="email" 
                 name="email" 
                 type="email" 
-                placeholder="john.doe@example.com" 
+                placeholder="e.g., jane.doe@example.com" 
                 required 
                 className="pl-10" 
                 value={email}
@@ -80,6 +105,7 @@ export function LeadIntakeForm() {
                 autoComplete="off"
               />
             </div>
+             {state?.fieldErrors?.email && <p className="text-sm text-destructive">{state.fieldErrors.email}</p>}
           </div>
           
           <div className="space-y-3">
@@ -104,6 +130,7 @@ export function LeadIntakeForm() {
                 <Label htmlFor="love" className="flex items-center gap-2 font-normal cursor-pointer"><HeartHandshake className="h-5 w-5" /> Relationships</Label>
               </div>
             </RadioGroup>
+            {state?.fieldErrors?.niche && <p className="text-sm text-destructive">{state.fieldErrors.niche}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -121,6 +148,7 @@ export function LeadIntakeForm() {
                   onChange={(e) => setLanguage(e.target.value)}
                 />
               </div>
+              {state?.fieldErrors?.language && <p className="text-sm text-destructive">{state.fieldErrors.language}</p>}
             </div>
 
             <div className="space-y-2">
@@ -141,11 +169,12 @@ export function LeadIntakeForm() {
                   <SelectItem value="Love Sales Agent">Love Sales Agent</SelectItem>
                 </SelectContent>
               </Select>
+              {state?.fieldErrors?.agentOrigin && <p className="text-sm text-destructive">{state.fieldErrors.agentOrigin}</p>}
             </div>
           </div>
           
-          <Button type="submit" className="w-full">
-            Submit
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Submitting..." : "Submit"}
           </Button>
         </form>
       </CardContent>
