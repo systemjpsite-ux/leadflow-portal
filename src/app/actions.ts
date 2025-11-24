@@ -13,6 +13,7 @@ export interface LeadState {
     niche?: string[];
     language?: string[];
     agentOrigin?: string[];
+    otherLanguage?: string[];
   };
   formError?: string;
 }
@@ -50,7 +51,8 @@ export async function registerLead(
   prevState: LeadState,
   formData: FormData
 ): Promise<LeadState> {
-  
+  console.log("Server action received data:", Object.fromEntries(formData.entries()));
+
   try {
     const rawData = {
       name: formData.get("name"),
@@ -64,6 +66,7 @@ export async function registerLead(
     const validatedFields = leadSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
+      console.log("Validation failed:", validatedFields.error.flatten().fieldErrors);
       return {
         success: false,
         fieldErrors: validatedFields.error.flatten().fieldErrors,
@@ -86,6 +89,7 @@ export async function registerLead(
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
+      console.log("Duplicate email found:", email);
       return {
         success: false,
         fieldErrors: { email: ["This email is already registered."] },
@@ -112,13 +116,15 @@ export async function registerLead(
       timestamp: serverTimestamp(),
       status: "new",
     });
-
+    
+    console.log("Successfully wrote lead to Firestore.");
     return { success: true };
 
   } catch (e: any) {
+    console.error("Error in server action:", e.message);
     return {
       success: false,
-      formError: "An unexpected error occurred. Please try again.",
+      formError: "Unexpected server error. Please try again.",
     };
   }
 }

@@ -2,7 +2,6 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { useFormStatus } from "react-dom";
 import { registerLead, type LeadState } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -11,12 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, ChevronsUpDown, DollarSign, HeartHandshake, HeartPulse, Languages, Loader2, Mail, User, UserCheck } from "lucide-react";
+import { Check, ChevronsUpDown, DollarSign, HeartHandshake, HeartPulse, Languages, Loader2, Mail, User, UserCheck, Terminal } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal } from "lucide-react";
 
 const initialState: LeadState = {
   success: false,
@@ -43,17 +41,8 @@ const languages = [
     { code: 'other', label: 'Other' },
 ];
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Submit"}
-    </Button>
-  );
-}
-
 export function LeadIntakeForm() {
-  const [state, formAction] = useActionState(registerLead, initialState);
+  const [state, formAction, isPending] = useActionState(registerLead, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -68,6 +57,7 @@ export function LeadIntakeForm() {
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   useEffect(() => {
+    console.log("Action state updated:", state);
     if (state.success) {
       toast({
         title: "Success!",
@@ -82,7 +72,14 @@ export function LeadIntakeForm() {
       setAgentOrigin("");
       setOtherLanguage("");
     }
-  }, [state.success, toast]);
+  }, [state, toast]);
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    console.log("Submitting form...");
+    formAction(formData);
+  };
 
   return (
     <Card className="w-full max-w-2xl shadow-xl border-0">
@@ -91,7 +88,16 @@ export function LeadIntakeForm() {
         <CardDescription className="pt-2">Register a new lead by filling out the form below.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form ref={formRef} action={formAction} className="space-y-6">
+        {state.formError && (
+          <Alert variant="destructive" className="mb-4">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {state.formError}
+            </AlertDescription>
+          </Alert>
+        )}
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6" noValidate>
           
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
@@ -187,18 +193,10 @@ export function LeadIntakeForm() {
               {state.fieldErrors?.otherLanguage && <p className="text-sm font-medium text-destructive">{state.fieldErrors.otherLanguage[0]}</p>}
             </div>
           )}
-
-          {state.formError && (
-            <Alert variant="destructive">
-              <Terminal className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>
-                {state.formError}
-              </AlertDescription>
-            </Alert>
-          )}
           
-          <SubmitButton />
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</> : "Submit"}
+          </Button>
         </form>
       </CardContent>
     </Card>
