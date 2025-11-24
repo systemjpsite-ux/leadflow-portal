@@ -13,7 +13,6 @@ export interface LeadState {
     niche?: string[];
     language?: string[];
     agentOrigin?: string[];
-    otherLanguage?: string[];
   };
   formError?: string;
 }
@@ -24,104 +23,56 @@ const leadSchema = z.object({
   niche: z.string().min(1, { message: "Please select a niche." }),
   language: z.string().min(1, { message: "Please select a language." }),
   agentOrigin: z.string().min(1, { message: "Please select an agent origin." }),
-  otherLanguage: z.string().optional(),
 });
-
-const languages = [
-    { code: 'en', label: 'English' },
-    { code: 'pt', label: 'Portuguese' },
-    { code: 'es', label: 'Spanish' },
-    { code: 'fr', label: 'French' },
-    { code: 'de', label: 'German' },
-    { code: 'it', label: 'Italian' },
-    { code: 'ja', label: 'Japanese' },
-    { code: 'ko', label: 'Korean' },
-    { code: 'zh-CN', label: 'Chinese – Simplified' },
-    { code: 'zh-TW', label: 'Chinese – Traditional' },
-    { code: 'ar', label: 'Arabic' },
-    { code: 'ru', label: 'Russian' },
-    { code: 'hi', label: 'Hindi' },
-    { code: 'id', label: 'Indonesian' },
-    { code: 'tr', label: 'Turkish' },
-    { code: 'other', label: 'Other' },
-];
-
 
 export async function registerLead(
   prevState: LeadState,
   formData: FormData
 ): Promise<LeadState> {
-  console.log("Server action received data:", Object.fromEntries(formData.entries()));
+  
+  console.log("Server Action: registerLead received data.");
+  const rawData = Object.fromEntries(formData.entries());
 
   try {
-    const rawData = {
-      name: formData.get("name"),
-      email: formData.get("email"),
-      niche: formData.get("niche"),
-      language: formData.get("language"),
-      agentOrigin: formData.get("agentOrigin"),
-      otherLanguage: formData.get("otherLanguage"),
-    };
-
     const validatedFields = leadSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
-      console.log("Validation failed:", validatedFields.error.flatten().fieldErrors);
+      console.log("Server Action: Validation failed.", validatedFields.error.flatten().fieldErrors);
       return {
         success: false,
         fieldErrors: validatedFields.error.flatten().fieldErrors,
       };
     }
-    
-    if (validatedFields.data.language === 'other' && !validatedFields.data.otherLanguage) {
-        return {
-            success: false,
-            fieldErrors: {
-                otherLanguage: ["Please specify the language when 'Other' is selected."],
-            }
-        }
-    }
 
-    const { name, email, niche, language, agentOrigin, otherLanguage } = validatedFields.data;
+    const { name, email, niche, language, agentOrigin } = validatedFields.data;
 
     const leadsRef = collection(db, "leads");
     const q = query(leadsRef, where("email", "==", email.toLowerCase()));
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
-      console.log("Duplicate email found:", email);
+      console.log("Server Action: Duplicate email found.");
       return {
         success: false,
         fieldErrors: { email: ["This email is already registered."] },
       };
     }
 
-    let languageCode = language;
-    let languageLabel = '';
-
-    if (language === 'other') {
-        languageLabel = otherLanguage!;
-    } else {
-        const selectedLanguage = languages.find(l => l.code === language);
-        languageLabel = selectedLanguage ? selectedLanguage.label : language;
-    }
-
     await addDoc(leadsRef, {
       name,
       email: email.toLowerCase(),
       niche,
-      languageCode,
-      languageLabel,
+      language,
       agent: agentOrigin,
       timestamp: serverTimestamp(),
       status: "new",
     });
     
-    console.log("Successfully wrote lead to Firestore.");
+    console.log("Server Action: Successfully wrote lead to Firestore.");
     return { success: true };
 
   } catch (e: any) {
-    console.error("Error in server action:", e.message);
+    console.error("Server Action: An unexpected error occurred.", e.message);
     return {
       success: false,
       formError: "Unexpected server error. Please try again.",
