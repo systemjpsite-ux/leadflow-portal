@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { registerLead, type LeadState } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
