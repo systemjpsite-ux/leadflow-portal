@@ -1,3 +1,4 @@
+
 'use client';
 
 import { registerLead, type RegisterLeadResult } from '@/app/actions';
@@ -19,6 +20,7 @@ import {
   Languages,
   Mail,
   User,
+  Globe,
 } from 'lucide-react';
 import { useEffect, useRef, useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
@@ -45,14 +47,18 @@ export function LeadIntakeForm() {
   const initialState: RegisterLeadResult = { success: false, fieldErrors: {} };
   const [state, formAction] = useActionState(registerLead, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  
+  // State for controlled components
   const [niche, setNiche] = useState<string | undefined>();
   const [language, setLanguage] = useState('');
+  const [country, setCountry] = useState('');
 
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset();
-      setNiche(undefined); // Reset niche state
-      setLanguage('');     // Reset language state
+      setNiche(undefined);
+      setLanguage('');
+      setCountry('');
     }
   }, [state.success]);
 
@@ -175,26 +181,49 @@ export function LeadIntakeForm() {
               </p>
             )}
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="language">Language</Label>
-            <div className="relative flex items-center">
-              <Languages className="absolute left-3 h-5 w-5 text-muted-foreground" />
-              <Input
-                id="language"
-                name="language"
-                placeholder="e.g., English, Japanese, Portuguese..."
-                className="pl-10"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                required
-              />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="language">Language</Label>
+              <div className="relative flex items-center">
+                <Languages className="absolute left-3 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="language"
+                  name="language"
+                  placeholder="e.g., English, Portuguese"
+                  className="pl-10"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  required
+                />
+              </div>
+              {state.fieldErrors?.language && (
+                <p className="text-red-500 text-sm mt-1">
+                  {state.fieldErrors.language}
+                </p>
+              )}
             </div>
-            {state.fieldErrors?.language && (
-              <p className="text-red-500 text-sm mt-1">
-                {state.fieldErrors.language}
-              </p>
-            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <div className="relative flex items-center">
+                <Globe className="absolute left-3 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="country"
+                  name="country"
+                  placeholder="e.g., Brazil, Japan"
+                  className="pl-10"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  required
+                />
+              </div>
+              {state.fieldErrors?.country && (
+                <p className="text-red-500 text-sm mt-1">
+                  {state.fieldErrors.country}
+                </p>
+              )}
+            </div>
           </div>
           
           <SubmitButton />

@@ -4,67 +4,6 @@
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { toIso2Language, ISO2_TO_ENGLISH_NAME, COUNTRY_NAME_EN_TO_PT } from '@/lib/locale';
-
-async function fetchCountryByLanguage(langIso2OrName: string) {
-  if (!langIso2OrName) return [];
-  const url = `https://restcountries.com/v3.1/lang/${encodeURIComponent(langIso2OrName)}`;
-  try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return [];
-    return (await res.json()) as any[];
-  } catch (error) {
-    console.error(`Error fetching country for language '${langIso2OrName}':`, error);
-    return [];
-  }
-}
-
-async function resolveCountryFromLanguage(inputLanguage: string) {
-  // 1) normaliza para ISO2 quando possível
-  const iso2 = toIso2Language(inputLanguage);
-
-  // 2) tenta com iso2 primeiro
-  if (iso2) {
-    let list = await fetchCountryByLanguage(iso2);
-    if (Array.isArray(list) && list.length > 0) {
-      const c = list[0];
-      return {
-        countryCode: (c.cca2 || '').toUpperCase(),
-        countryName: c?.name?.common || '',
-      };
-    }
-    // 3) fallback: tenta com nome inglês da língua
-    const enName = ISO2_TO_ENGLISH_NAME[iso2];
-    if (enName) {
-      list = await fetchCountryByLanguage(enName);
-      if (Array.isArray(list) && list.length > 0) {
-        const c = list[0];
-        return {
-          countryCode: (c.cca2 || '').toUpperCase(),
-          countryName: c?.name?.common || '',
-        };
-      }
-    }
-  }
-
-  // 4) último recurso: tenta direto com o texto normalizado (sem acentos)
-  const tryRaw = inputLanguage.normalize('NFD').replace(/\p{Diacritic}+/gu, '').toLowerCase().trim();
-  if (tryRaw) {
-      let list = await fetchCountryByLanguage(tryRaw);
-      if (Array.isArray(list) && list.length > 0) {
-        const c = list[0];
-        return {
-          countryCode: (c.cca2 || '').toUpperCase(),
-          countryName: c?.name?.common || '',
-        };
-      }
-  }
-
-
-  // Se nada deu certo, devolve nulos (não quebra o submit)
-  return { countryCode: 'N/A', countryName: 'Unknown' };
-}
-
 
 export type RegisterLeadResult = {
   success: boolean;
@@ -74,6 +13,7 @@ export type RegisterLeadResult = {
     email?: string;
     niche?: string;
     language?: string;
+    country?: string;
   };
   formError?: string;
 };
@@ -85,6 +25,7 @@ const leadSchema = z.object({
     errorMap: () => ({ message: 'Niche is required' }),
   }),
   language: z.string().trim().min(1, { message: 'Language is required' }),
+  country: z.string().trim().min(1, { message: 'Country is required' }),
 });
 
 const nicheToAgentOrigin: Record<string, string> = {
@@ -108,6 +49,7 @@ export async function registerLead(
     email: formData.get('email'),
     niche: formData.get('niche'),
     language: formData.get('language'),
+    country: formData.get('country'),
   };
 
   const validatedFields = leadSchema.safeParse(rawData);
@@ -121,42 +63,26 @@ export async function registerLead(
         email: fieldErrors.email?.[0],
         niche: fieldErrors.niche?.[0],
         language: fieldErrors.language?.[0],
+        country: fieldErrors.country?.[0],
       },
       formError: 'Please correct the errors below.',
     };
   }
 
-  const { name, email, niche, language } = validatedFields.data;
+  const { name, email, niche, language, country } = validatedFields.data;
   const emailId = email.toLowerCase();
   
   const agentOrigin = nicheToAgentOrigin[niche];
-  const { countryCode, countryName } = await resolveCountryFromLanguage(language);
   const nicheCollection = nicheToCollection[niche];
   
-  const countryNamePt = COUNTRY_NAME_EN_TO_PT[countryName] ?? countryName;
-  const countryDocId = `${countryName} - ${countryNamePt}`;
-
   const leadData = {
     name,
     email: emailId,
     niche,
-    language: language,
-    country: countryName,
-    agentOrigin,
-    status: 'new',
-    createdAt: serverTimestamp(),
-  };
-  
-  const countryLeadData = {
-    name,
-    email: emailId,
-    niche,
     language,
-    countryCode,
-    countryName,
-    countryNamePt,
-    status: 'new',
+    country,
     agentOrigin,
+    status: 'new',
     createdAt: serverTimestamp(),
   };
 
@@ -167,12 +93,9 @@ export async function registerLead(
     const leadRef = doc(db, 'leads', emailId);
     batch.set(leadRef, leadData);
 
-    // 2. Countries collection (using custom ID format)
-    if (countryName && countryName !== 'Unknown') {
-        const countryLeadRef = doc(db, `pais/${countryDocId}/leads`, emailId);
-        batch.set(countryLeadRef, countryLeadData);
-    }
-    
+    // 2. Countries collection
+    const countryLeadRef = doc(db, `pais/${country}/leads`, emailId);
+    batch.set(countryLeadRef, leadData);
 
     // 3. Niche-specific collection
     if (nicheCollection) {
