@@ -13,13 +13,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   DollarSign,
   HeartHandshake,
   HeartPulse,
@@ -28,7 +21,7 @@ import {
   User,
   UserCheck,
 } from 'lucide-react';
-import { useEffect, useRef, useActionState, useState } from 'react';
+import { useEffect, useMemo, useRef, useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { cn } from '@/lib/utils';
@@ -47,23 +40,29 @@ export function LeadIntakeForm() {
   const [state, formAction] = useActionState(registerLead, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const [niche, setNiche] = useState<string | undefined>();
-  const [agentOrigin, setAgentOrigin] = useState<string | undefined>();
   const [language, setLanguage] = useState<string>('');
+
+  const agentOrigin = useMemo(() => {
+    if (!niche) return '';
+    switch (niche) {
+      case 'Health':
+        return 'Vendedor de Saúde';
+      case 'Wealth':
+        return 'Vendedor de Dinheiro';
+      case 'Relationships':
+        return 'Vendedor de Relacionamento';
+      default:
+        return '';
+    }
+  }, [niche]);
 
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset();
       setNiche(undefined);
-      setAgentOrigin(undefined);
       setLanguage('');
     }
   }, [state]);
-
-  const agentOriginOptions = [
-    { value: 'health', label: 'Vendedor de Saúde' },
-    { value: 'wealth', label: 'Vendedor de Dinheiro' },
-    { value: 'relationships', label: 'Vendedor de Relacionamento' },
-  ];
 
   return (
     <Card className="w-full max-w-2xl shadow-xl border-0">
@@ -96,6 +95,11 @@ export function LeadIntakeForm() {
           noValidate
           autoComplete="off"
         >
+          {/* Hidden input to pass agentOrigin to the server action */}
+          {agentOrigin && (
+            <input type="hidden" name="agentOrigin" value={agentOrigin} />
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <div className="relative flex items-center">
@@ -144,6 +148,7 @@ export function LeadIntakeForm() {
               onValueChange={setNiche}
               value={niche}
               className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+              required
             >
               {[
                 { value: 'Health', label: 'Health', icon: HeartPulse },
@@ -158,10 +163,10 @@ export function LeadIntakeForm() {
                   key={value}
                   htmlFor={value}
                   className={cn(
-                    'flex flex-col items-center justify-center space-y-2 rounded-md border p-4 cursor-pointer transition-colors duration-200',
+                    'flex flex-col items-center justify-center space-y-2 rounded-md border p-4 cursor-pointer transition-all duration-200 ease-in-out',
                     'hover:bg-gray-100 dark:hover:bg-accent/50',
                     niche === value
-                      ? 'bg-green-100 border-green-500 text-green-700'
+                      ? 'bg-[#d4f9d6] border-[#22c55e] text-[#16a34a]'
                       : 'border-input bg-transparent text-foreground'
                   )}
                 >
@@ -201,21 +206,20 @@ export function LeadIntakeForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="agentOrigin">Agent Origin</Label>
-              <Select name="agentOrigin" onValueChange={setAgentOrigin} value={agentOrigin} required>
-                <SelectTrigger className="pl-10">
-                  <UserCheck className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
-                  <SelectValue placeholder="Selecione a origem do agente..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {agentOriginOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {state.fieldErrors?.agentOrigin && (
+              <Label htmlFor="agentOriginDisplay">Agent Origin</Label>
+              <div className="relative flex items-center">
+                <UserCheck className="absolute left-3 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="agentOriginDisplay"
+                  name="agentOriginDisplay"
+                  placeholder="Selecione um nicho primeiro"
+                  className="pl-10 bg-gray-100 dark:bg-muted"
+                  value={agentOrigin}
+                  readOnly
+                  disabled
+                />
+              </div>
+               {state.fieldErrors?.agentOrigin && (
                 <p className="text-red-500 text-sm mt-1">
                   {state.fieldErrors.agentOrigin}
                 </p>
