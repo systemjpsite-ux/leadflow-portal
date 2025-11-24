@@ -28,9 +28,10 @@ import {
   User,
   UserCheck,
 } from 'lucide-react';
-import { useEffect, useRef, useActionState } from 'react';
+import { useEffect, useRef, useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { cn } from '@/lib/utils';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -45,12 +46,22 @@ export function LeadIntakeForm() {
   const initialState: RegisterLeadResult = { success: false, fieldErrors: {} };
   const [state, formAction] = useActionState(registerLead, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  const [niche, setNiche] = useState<string | undefined>();
+  const [agentOrigin, setAgentOrigin] = useState<string | undefined>();
 
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset();
+      setNiche(undefined);
+      setAgentOrigin(undefined);
     }
   }, [state]);
+
+  const agentOriginOptions = [
+    { value: 'health', label: 'Vendedor de Saúde' },
+    { value: 'wealth', label: 'Vendedor de Dinheiro' },
+    { value: 'relationships', label: 'Vendedor de Relacionamento' },
+  ];
 
   return (
     <Card className="w-full max-w-2xl shadow-xl border-0">
@@ -126,35 +137,34 @@ export function LeadIntakeForm() {
             <Label>Niche</Label>
             <RadioGroup
               name="niche"
+              onValueChange={setNiche}
+              value={niche}
               className="grid grid-cols-1 sm:grid-cols-3 gap-4"
             >
-              <div className="flex items-center space-x-2 rounded-md border border-input p-4 hover:bg-accent/50 transition-colors">
-                <RadioGroupItem value="Health" id="health" />
+              {[
+                { value: 'Health', label: 'Health', icon: HeartPulse },
+                { value: 'Wealth', label: 'Wealth', icon: DollarSign },
+                {
+                  value: 'Relationships',
+                  label: 'Relationships',
+                  icon: HeartHandshake,
+                },
+              ].map(({ value, label: nicheLabel, icon: Icon }) => (
                 <Label
-                  htmlFor="health"
-                  className="flex items-center gap-2 font-normal cursor-pointer"
+                  key={value}
+                  htmlFor={value}
+                  className={cn(
+                    'flex flex-col items-center justify-center space-y-2 rounded-md border p-4 transition-colors hover:bg-accent/50 cursor-pointer',
+                    niche === value
+                      ? 'border-primary ring-2 ring-primary bg-accent/50'
+                      : 'border-input'
+                  )}
                 >
-                  <HeartPulse className="h-5 w-5" /> Health
+                  <RadioGroupItem value={value} id={value} className="sr-only" />
+                  <Icon className="h-8 w-8" />
+                  <span className="font-normal">{nicheLabel}</span>
                 </Label>
-              </div>
-              <div className="flex items-center space-x-2 rounded-md border border-input p-4 hover:bg-accent/50 transition-colors">
-                <RadioGroupItem value="Wealth" id="wealth" />
-                <Label
-                  htmlFor="wealth"
-                  className="flex items-center gap-2 font-normal cursor-pointer"
-                >
-                  <DollarSign className="h-5 w-5" /> Wealth
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2 rounded-md border border-input p-4 hover:bg-accent/50 transition-colors">
-                <RadioGroupItem value="Relationships" id="love" />
-                <Label
-                  htmlFor="love"
-                  className="flex items-center gap-2 font-normal cursor-pointer"
-                >
-                  <HeartHandshake className="h-5 w-5" /> Relationships
-                </Label>
-              </div>
+              ))}
             </RadioGroup>
             {state.fieldErrors?.niche && (
               <p className="text-red-500 text-sm mt-1">
@@ -167,11 +177,11 @@ export function LeadIntakeForm() {
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
               <div className="relative flex items-center">
-                 <Languages className="absolute left-3 h-5 w-5 text-muted-foreground" />
+                <Languages className="absolute left-3 h-5 w-5 text-muted-foreground" />
                 <Input
                   id="language"
                   name="language"
-                  placeholder="e.g., English, Japanese..."
+                  placeholder="e.g., English, Japanese"
                   className="pl-10"
                 />
               </div>
@@ -184,19 +194,17 @@ export function LeadIntakeForm() {
 
             <div className="space-y-2">
               <Label htmlFor="agentOrigin">Agent Origin</Label>
-              <Select name="agentOrigin">
+              <Select name="agentOrigin" onValueChange={setAgentOrigin} value={agentOrigin}>
                 <SelectTrigger className="pl-10">
                   <UserCheck className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
-                  <SelectValue placeholder="Select an agent..." />
+                  <SelectValue placeholder="Selecione a origem do agente..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Health Sales Agent">
-                    Health Sales Agent
-                  </SelectItem>
-                  <SelectItem value="Wealth Sales Agent">
-                    Wealth Sales Agent
-                  </SelectItem>
-                  <SelectItem value="Love Sales Agent">Love Sales Agent</SelectItem>
+                  {agentOriginOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {state.fieldErrors?.agentOrigin && (
