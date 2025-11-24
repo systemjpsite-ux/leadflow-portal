@@ -5,7 +5,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, query, where, getDocs, serverTimestamp } from "firebase/firestore";
 
 const leadSchema = z.object({
-  name: z.string().min(2, { message: "Full name must be at least 2 characters." }),
+  name: z.string().min(1, { message: "Full name is required." }),
   email: z.string().email({ message: "Invalid email address." }),
   niche: z.enum(["health", "wealth", "love"], {
     errorMap: () => ({ message: "Please select a niche." }),
@@ -34,7 +34,7 @@ export type LeadState = {
     _form?: string[];
   };
   message?: string;
-  success?: boolean;
+  success: boolean;
 };
 
 const languages: { code: string; label: string }[] = [
@@ -58,12 +58,12 @@ const languages: { code: string; label: string }[] = [
 
 export async function registerLead(prevState: LeadState, formData: FormData): Promise<LeadState> {
   const data = {
-    name: formData.get("name") || "",
-    email: formData.get("email") || "",
-    niche: formData.get("niche") || "",
-    language: formData.get("language") || "",
-    otherLanguage: formData.get("otherLanguage") || "",
-    agent: formData.get("agent") || "",
+    name: formData.get("name") as string || "",
+    email: formData.get("email") as string || "",
+    niche: formData.get("niche") as string || "",
+    language: formData.get("language") as string || "",
+    otherLanguage: formData.get("otherLanguage") as string || "",
+    agent: formData.get("agent") as string || "",
   };
 
   const validatedFields = leadSchema.safeParse(data);

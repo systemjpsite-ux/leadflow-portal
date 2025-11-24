@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/command"
 
 const initialState: LeadState = {
-  message: undefined,
   errors: undefined,
   success: false,
 };
@@ -62,20 +61,20 @@ export function LeadIntakeForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedLanguage, setSelectedLanguage] = useState('');
   const [selectedAgent, setSelectedAgent] = useState('');
-  const [popoverOpen, setPopoverOpen] = useState(false)
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   useEffect(() => {
     if (state.success) {
       toast({
         title: "Success!",
-        description: state.message,
+        description: "Lead registered successfully!",
       });
       formRef.current?.reset();
       setSelectedLanguage('');
       setSelectedAgent('');
-    } else if (state.message && state.errors) {
-        const errorDescription = state.errors?._form?.[0] 
-          || Object.values(state.errors).flat()[0]
+    } else if (state.errors) {
+        const errorDescription = state.errors?._form?.[0]
+          || Object.values(state.errors || {}).flat()[0]
           || "Please check the form for errors.";
         toast({
           variant: "destructive",
@@ -193,8 +192,8 @@ export function LeadIntakeForm() {
                <div className="relative flex items-center">
                  <UserCheck className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
                  <Input type="hidden" name="agent" value={selectedAgent} />
-                <Select onValueChange={setSelectedAgent} value={selectedAgent} aria-describedby="agent-error">
-                  <SelectTrigger className="pl-10">
+                <Select onValueChange={setSelectedAgent} value={selectedAgent}>
+                  <SelectTrigger className="pl-10" aria-describedby="agent-error">
                     <SelectValue placeholder="Select an agent" />
                   </SelectTrigger>
                   <SelectContent>
