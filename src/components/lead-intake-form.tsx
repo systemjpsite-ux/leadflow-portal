@@ -1,4 +1,3 @@
-
 'use client';
 
 import { registerLead, type RegisterLeadState } from '@/app/actions';
@@ -22,7 +21,7 @@ import {
   User,
   Globe,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { cn } from '@/lib/utils';
@@ -171,7 +170,7 @@ export function LeadIntakeForm() {
                     'flex flex-col items-center justify-center space-y-2 rounded-md border p-4 cursor-pointer transition-all duration-200 ease-in-out',
                     'hover:bg-gray-100 dark:hover:bg-accent/50',
                     niche === value
-                      ? 'bg-[#d4f9d6] border-green-500 text-green-700'
+                      ? 'bg-green-100 border-green-500 text-green-700'
                       : 'border-input bg-transparent text-foreground'
                   )}
                 >
