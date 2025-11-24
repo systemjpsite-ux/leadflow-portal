@@ -1,11 +1,13 @@
+
 'use server';
 
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { doc, writeBatch, serverTimestamp, setDoc } from 'firebase/firestore';
-import { toIso2Language, ISO2_TO_ENGLISH_NAME } from '@/lib/locale';
+import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { toIso2Language, ISO2_TO_ENGLISH_NAME, COUNTRY_NAME_EN_TO_PT } from '@/lib/locale';
 
 async function fetchCountryByLanguage(langIso2OrName: string) {
+  if (!langIso2OrName) return [];
   const url = `https://restcountries.com/v3.1/lang/${encodeURIComponent(langIso2OrName)}`;
   try {
     const res = await fetch(url, { cache: 'no-store' });
@@ -130,6 +132,9 @@ export async function registerLead(
   const agentOrigin = nicheToAgentOrigin[niche];
   const { countryCode, countryName } = await resolveCountryFromLanguage(language);
   const nicheCollection = nicheToCollection[niche];
+  
+  const countryNamePt = COUNTRY_NAME_EN_TO_PT[countryName] ?? countryName;
+  const countryDocId = `${countryName} / ${countryNamePt}`;
 
   const leadData = {
     name,
@@ -147,8 +152,9 @@ export async function registerLead(
     email: emailId,
     niche,
     language,
-    countryCode, // Adicionando para consistência
+    countryCode,
     countryName,
+    countryNamePt,
     status: 'new',
     agentOrigin,
     createdAt: serverTimestamp(),
@@ -161,9 +167,9 @@ export async function registerLead(
     const leadRef = doc(db, 'leads', emailId);
     batch.set(leadRef, leadData);
 
-    // 2. Countries collection (using countryName as document ID)
+    // 2. Countries collection (using custom ID format)
     if (countryName && countryName !== 'Unknown') {
-        const countryLeadRef = doc(db, `pais/${countryName}/leads`, emailId);
+        const countryLeadRef = doc(db, `pais/${countryDocId}/leads`, emailId);
         batch.set(countryLeadRef, countryLeadData);
     }
     
