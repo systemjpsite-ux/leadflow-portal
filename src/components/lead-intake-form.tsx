@@ -15,10 +15,13 @@ import { Check, ChevronsUpDown, DollarSign, HeartHandshake, HeartPulse, Language
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from "lucide-react";
 
 const initialState: LeadState = {
   success: false,
-  errors: {},
+  fieldErrors: {},
+  formError: "",
 };
 
 const languages = [
@@ -54,13 +57,14 @@ export function LeadIntakeForm() {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 
+  // Controlled component states
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [niche, setNiche] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState("");
+  const [language, setLanguage] = useState("");
+  const [agentOrigin, setAgentOrigin] = useState("");
   const [otherLanguage, setOtherLanguage] = useState("");
-  const [selectedAgent, setSelectedAgent] = useState("");
-  
+
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   useEffect(() => {
@@ -69,24 +73,16 @@ export function LeadIntakeForm() {
         title: "Success!",
         description: "Lead registered successfully!",
       });
+      // Reset form and all controlled states
       formRef.current?.reset();
       setName("");
       setEmail("");
       setNiche("");
-      setSelectedLanguage("");
+      setLanguage("");
+      setAgentOrigin("");
       setOtherLanguage("");
-      setSelectedAgent("");
-    } else if (state.errors && Object.keys(state.errors).length > 0) {
-      const firstError = state.errors._form?.[0] || Object.values(state.errors).flat()[0];
-      if (firstError) {
-         toast({
-            variant: "destructive",
-            title: "Submission Error",
-            description: firstError,
-        });
-      }
     }
-  }, [state, toast]);
+  }, [state.success, toast]);
 
   return (
     <Card className="w-full max-w-2xl shadow-xl border-0">
@@ -101,23 +97,23 @@ export function LeadIntakeForm() {
             <Label htmlFor="name">Full Name</Label>
             <div className="relative flex items-center">
               <User className="absolute left-3 h-5 w-5 text-muted-foreground" />
-              <Input id="name" name="name" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required className="pl-10" aria-describedby="name-error" />
+              <Input id="name" name="name" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required className="pl-10" />
             </div>
-            {state.errors?.name && <p id="name-error" className="text-sm font-medium text-destructive">{state.errors.name[0]}</p>}
+            {state.fieldErrors?.name && <p className="text-sm font-medium text-destructive">{state.fieldErrors.name[0]}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
             <div className="relative flex items-center">
               <Mail className="absolute left-3 h-5 w-5 text-muted-foreground" />
-              <Input id="email" name="email" type="email" placeholder="john.doe@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-10" aria-describedby="email-error"/>
+              <Input id="email" name="email" type="email" placeholder="john.doe@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-10" />
             </div>
-            {state.errors?.email && <p id="email-error" className="text-sm font-medium text-destructive">{state.errors.email[0]}</p>}
+            {state.fieldErrors?.email && <p className="text-sm font-medium text-destructive">{state.fieldErrors.email[0]}</p>}
           </div>
           
-          <div className="space-y-3" role="radiogroup" aria-labelledby="niche-label">
-            <Label id="niche-label">Niche</Label>
-            <RadioGroup name="niche" value={niche} onValueChange={setNiche} className="grid grid-cols-1 sm:grid-cols-3 gap-4" aria-describedby="niche-error">
+          <div className="space-y-3">
+            <Label>Niche</Label>
+            <RadioGroup name="niche" value={niche} onValueChange={setNiche} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="flex items-center space-x-2 rounded-md border border-input p-4 hover:bg-accent/50 transition-colors">
                 <RadioGroupItem value="health" id="health" />
                 <Label htmlFor="health" className="flex items-center gap-2 font-normal cursor-pointer"><HeartPulse className="h-5 w-5 text-red-500" /> Health</Label>
@@ -131,19 +127,18 @@ export function LeadIntakeForm() {
                 <Label htmlFor="love" className="flex items-center gap-2 font-normal cursor-pointer"><HeartHandshake className="h-5 w-5 text-pink-500" /> Relationships</Label>
               </div>
             </RadioGroup>
-            {state.errors?.niche && <p id="niche-error" className="text-sm font-medium text-destructive">{state.errors.niche[0]}</p>}
+            {state.fieldErrors?.niche && <p className="text-sm font-medium text-destructive">{state.fieldErrors.niche[0]}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
-              <Input type="hidden" name="language" value={selectedLanguage} />
+              <input type="hidden" name="language" value={language} />
               <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" aria-expanded={popoverOpen} className="w-full justify-between pl-10" aria-describedby="language-error">
+                  <Button variant="outline" role="combobox" aria-expanded={popoverOpen} className="w-full justify-between pl-10">
                     <Languages className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
-                    {selectedLanguage ? languages.find((l) => l.code === selectedLanguage)?.label : "Select a language..."}
+                    {language ? languages.find((l) => l.code === language)?.label : "Select a language..."}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -152,27 +147,26 @@ export function LeadIntakeForm() {
                     <CommandInput placeholder="Search language..." />
                     <CommandEmpty>No language found.</CommandEmpty>
                     <CommandGroup>
-                      {languages.map((language) => (
-                        <CommandItem key={language.code} value={language.code} onSelect={(currentValue) => {
-                            setSelectedLanguage(currentValue === selectedLanguage ? "" : currentValue);
+                      {languages.map((lang) => (
+                        <CommandItem key={lang.code} value={lang.code} onSelect={(currentValue) => {
+                            setLanguage(currentValue === language ? "" : currentValue);
                             setPopoverOpen(false);
                           }}>
-                          <Check className={cn("mr-2 h-4 w-4", selectedLanguage === language.code ? "opacity-100" : "opacity-0")}/>
-                          {language.label}
+                          <Check className={cn("mr-2 h-4 w-4", language === lang.code ? "opacity-100" : "opacity-0")}/>
+                          {lang.label}
                         </CommandItem>
                       ))}
                     </CommandGroup>
                   </Command>
                 </PopoverContent>
               </Popover>
-              {state.errors?.language && <p id="language-error" className="text-sm font-medium text-destructive">{state.errors.language[0]}</p>}
+              {state.fieldErrors?.language && <p className="text-sm font-medium text-destructive">{state.fieldErrors.language[0]}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="agent">Agent Origin</Label>
-              <Input type="hidden" name="agent" value={selectedAgent} />
-              <Select onValueChange={setSelectedAgent} value={selectedAgent}>
-                <SelectTrigger className="pl-10" aria-describedby="agent-error">
+              <Label htmlFor="agentOrigin">Agent Origin</Label>
+              <Select name="agentOrigin" onValueChange={setAgentOrigin} value={agentOrigin}>
+                <SelectTrigger className="pl-10">
                   <UserCheck className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
                   <SelectValue placeholder="Select an agent..." />
                 </SelectTrigger>
@@ -182,19 +176,27 @@ export function LeadIntakeForm() {
                   <SelectItem value="love-sales-agent">Love Sales Agent</SelectItem>
                 </SelectContent>
               </Select>
-              {state.errors?.agent && <p id="agent-error" className="text-sm font-medium text-destructive">{state.errors.agent[0]}</p>}
+              {state.fieldErrors?.agentOrigin && <p className="text-sm font-medium text-destructive">{state.fieldErrors.agentOrigin[0]}</p>}
             </div>
           </div>
           
-          {selectedLanguage === 'other' && (
+          {language === 'other' && (
             <div className="space-y-2 animate-in fade-in-0">
               <Label htmlFor="otherLanguage">Other Language</Label>
-              <Input id="otherLanguage" name="otherLanguage" value={otherLanguage} onChange={(e) => setOtherLanguage(e.target.value)} placeholder="Type the language name" required aria-describedby="other-language-error" />
-              {state.errors?.otherLanguage && <p id="other-language-error" className="text-sm font-medium text-destructive">{state.errors.otherLanguage[0]}</p>}
+              <Input id="otherLanguage" name="otherLanguage" value={otherLanguage} onChange={(e) => setOtherLanguage(e.target.value)} placeholder="Type the language name" required />
+              {state.fieldErrors?.otherLanguage && <p className="text-sm font-medium text-destructive">{state.fieldErrors.otherLanguage[0]}</p>}
             </div>
           )}
 
-          {state.errors?._form && <p className="text-sm font-medium text-destructive">{state.errors._form[0]}</p>}
+          {state.formError && (
+            <Alert variant="destructive">
+              <Terminal className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                {state.formError}
+              </AlertDescription>
+            </Alert>
+          )}
           
           <SubmitButton />
         </form>

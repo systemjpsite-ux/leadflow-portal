@@ -7,15 +7,14 @@ import { db } from "@/lib/firebase";
 
 export interface LeadState {
   success: boolean;
-  errors?: {
+  fieldErrors?: {
     name?: string[];
     email?: string[];
     niche?: string[];
     language?: string[];
-    otherLanguage?: string[];
-    agent?: string[];
-    _form?: string[];
+    agentOrigin?: string[];
   };
+  formError?: string;
 }
 
 const leadSchema = z.object({
@@ -23,16 +22,8 @@ const leadSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   niche: z.string().min(1, { message: "Please select a niche." }),
   language: z.string().min(1, { message: "Please select a language." }),
+  agentOrigin: z.string().min(1, { message: "Please select an agent origin." }),
   otherLanguage: z.string().optional(),
-  agent: z.string().min(1, { message: "Please select an agent origin." }),
-}).refine(data => {
-  if (data.language === 'other') {
-    return data.otherLanguage && data.otherLanguage.trim().length > 0;
-  }
-  return true;
-}, {
-  message: "Please specify the language when 'Other' is selected.",
-  path: ["otherLanguage"],
 });
 
 const languages = [
@@ -54,32 +45,42 @@ const languages = [
     { code: 'other', label: 'Other' },
 ];
 
+
 export async function registerLead(
   prevState: LeadState,
   formData: FormData
 ): Promise<LeadState> {
   
-  const rawData = {
-    name: formData.get("name") || "",
-    email: formData.get("email") || "",
-    niche: formData.get("niche") || "",
-    language: formData.get("language") || "",
-    otherLanguage: formData.get("otherLanguage") || "",
-    agent: formData.get("agent") || "",
-  };
-  
-  const validatedFields = leadSchema.safeParse(rawData);
-
-  if (!validatedFields.success) {
-    return {
-      success: false,
-      errors: validatedFields.error.flatten().fieldErrors,
-    };
-  }
-
-  const { name, email, niche, language, agent, otherLanguage } = validatedFields.data;
-
   try {
+    const rawData = {
+      name: formData.get("name"),
+      email: formData.get("email"),
+      niche: formData.get("niche"),
+      language: formData.get("language"),
+      agentOrigin: formData.get("agentOrigin"),
+      otherLanguage: formData.get("otherLanguage"),
+    };
+
+    const validatedFields = leadSchema.safeParse(rawData);
+
+    if (!validatedFields.success) {
+      return {
+        success: false,
+        fieldErrors: validatedFields.error.flatten().fieldErrors,
+      };
+    }
+    
+    if (validatedFields.data.language === 'other' && !validatedFields.data.otherLanguage) {
+        return {
+            success: false,
+            fieldErrors: {
+                otherLanguage: ["Please specify the language when 'Other' is selected."],
+            }
+        }
+    }
+
+    const { name, email, niche, language, agentOrigin, otherLanguage } = validatedFields.data;
+
     const leadsRef = collection(db, "leads");
     const q = query(leadsRef, where("email", "==", email.toLowerCase()));
     const querySnapshot = await getDocs(q);
@@ -87,10 +88,10 @@ export async function registerLead(
     if (!querySnapshot.empty) {
       return {
         success: false,
-        errors: { email: ["This email is already registered."] },
+        fieldErrors: { email: ["This email is already registered."] },
       };
     }
-    
+
     let languageCode = language;
     let languageLabel = '';
 
@@ -107,7 +108,7 @@ export async function registerLead(
       niche,
       languageCode,
       languageLabel,
-      agent,
+      agent: agentOrigin,
       timestamp: serverTimestamp(),
       status: "new",
     });
@@ -117,7 +118,7 @@ export async function registerLead(
   } catch (e: any) {
     return {
       success: false,
-      errors: { _form: ["Something went wrong on our end. Please try again."] },
+      formError: "An unexpected error occurred. Please try again.",
     };
   }
 }
