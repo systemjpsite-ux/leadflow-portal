@@ -93,14 +93,18 @@ export async function registerLead(
     const leadRef = doc(db, 'leads', emailId);
     batch.set(leadRef, leadData);
 
-    // 2. Countries collection
+    // 2. Country-specific general leads subcollection
     const countryLeadRef = doc(db, `pais/${country}/leads`, emailId);
     batch.set(countryLeadRef, leadData);
 
-    // 3. Niche-specific collection
+    // 3. Top-level niche-specific collection
     if (nicheCollection) {
       const nicheLeadRef = doc(db, nicheCollection, emailId);
       batch.set(nicheLeadRef, leadData);
+
+      // 4. Country-specific and niche-specific subcollection (NEW)
+      const countryNicheLeadRef = doc(db, `pais/${country}/${nicheCollection}`, emailId);
+      batch.set(countryNicheLeadRef, leadData);
     }
     
     await batch.commit();
