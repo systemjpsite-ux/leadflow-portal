@@ -25,6 +25,7 @@ import { useEffect, useMemo, useRef, useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -73,6 +74,11 @@ export function LeadIntakeForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="flex justify-end mb-4">
+          <Button asChild variant="link">
+            <Link href="/leads">View Leads Dashboard</Link>
+          </Button>
+        </div>
         {state.success && state.message && (
           <Alert
             variant="default"
@@ -95,7 +101,6 @@ export function LeadIntakeForm() {
           noValidate
           autoComplete="off"
         >
-          {/* Hidden input to pass agentOrigin to the server action */}
           {agentOrigin && (
             <input type="hidden" name="agentOrigin" value={agentOrigin} />
           )}
@@ -166,13 +171,22 @@ export function LeadIntakeForm() {
                     'flex flex-col items-center justify-center space-y-2 rounded-md border p-4 cursor-pointer transition-all duration-200 ease-in-out',
                     'hover:bg-gray-100 dark:hover:bg-accent/50',
                     niche === value
-                      ? 'bg-[#d4f9d6] border-[#22c55e] text-[#16a34a]'
+                      ? 'bg-[#d4f9d6] border-green-500 text-green-700'
                       : 'border-input bg-transparent text-foreground'
                   )}
                 >
-                  <RadioGroupItem value={value} id={value} className="sr-only" />
-                  <Icon className="h-8 w-8" />
-                  <span className="font-normal">{nicheLabel}</span>
+                  <RadioGroupItem
+                    value={value}
+                    id={value}
+                    className="sr-only"
+                  />
+                  <Icon
+                    className={cn(
+                      'h-8 w-8',
+                      niche === value ? 'text-green-600' : ''
+                    )}
+                  />
+                  <span className="font-semibold">{nicheLabel}</span>
                 </Label>
               ))}
             </RadioGroup>
@@ -191,7 +205,7 @@ export function LeadIntakeForm() {
                 <Input
                   id="language"
                   name="language"
-                  placeholder="e.g., English, Japanese"
+                  placeholder="e.g., english, japanese"
                   className="pl-10"
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
@@ -219,11 +233,6 @@ export function LeadIntakeForm() {
                   disabled
                 />
               </div>
-               {state.fieldErrors?.agentOrigin && (
-                <p className="text-red-500 text-sm mt-1">
-                  {state.fieldErrors.agentOrigin}
-                </p>
-              )}
             </div>
           </div>
           <SubmitButton />

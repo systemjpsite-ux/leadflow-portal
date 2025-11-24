@@ -30,6 +30,20 @@ const leadSchema = z.object({
   agentOrigin: z.string().min(1, { message: 'Agent origin is required' }),
 });
 
+const languageToCountry: Record<string, string> = {
+  japanese: 'Japan',
+  portuguese: 'Brazil',
+  spanish: 'Spain',
+  english: 'United States',
+  chinese: 'China',
+  hindi: 'India',
+};
+
+function getCountryFromLanguage(language: string): string {
+  const normalizedLanguage = language.trim().toLowerCase();
+  return languageToCountry[normalizedLanguage] || 'Unknown';
+}
+
 export async function registerLead(
   prevState: RegisterLeadResult,
   formData: FormData
@@ -60,6 +74,7 @@ export async function registerLead(
   }
 
   const { name, email, niche, language, agentOrigin } = validatedFields.data;
+  const country = getCountryFromLanguage(language);
 
   try {
     const leadRef = doc(db, 'leads', email.toLowerCase());
@@ -78,6 +93,7 @@ export async function registerLead(
       email: email.toLowerCase(),
       niche,
       language,
+      country,
       agentOrigin,
       createdAt: serverTimestamp(),
       status: 'new',

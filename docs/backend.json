@@ -22,6 +22,10 @@
           "type": "string",
           "description": "The language of the lead."
         },
+        "country": {
+          "type": "string",
+          "description": "The country associated with the language."
+        },
         "agentOrigin": {
           "type": "string",
           "description": "The origin of the sales agent."
@@ -41,6 +45,7 @@
         "email",
         "niche",
         "language",
+        "country",
         "agentOrigin",
         "createdAt",
         "status"
