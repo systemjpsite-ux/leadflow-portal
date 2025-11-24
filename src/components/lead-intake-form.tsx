@@ -16,7 +16,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 
-// Define the initial state for the form action. It must match the LeadState interface.
 const initialState: LeadState = {
   success: false,
   errors: {},
@@ -51,12 +50,10 @@ function SubmitButton() {
 }
 
 export function LeadIntakeForm() {
-  // Use the useActionState hook with the correct initial state
   const [state, formAction] = useActionState(registerLead, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Create controlled components for all fields that need it
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [niche, setNiche] = useState("");
@@ -67,13 +64,11 @@ export function LeadIntakeForm() {
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   useEffect(() => {
-    // This effect runs whenever the 'state' from the server action changes
     if (state.success) {
       toast({
         title: "Success!",
         description: "Lead registered successfully!",
       });
-      // Reset form and all controlled component states
       formRef.current?.reset();
       setName("");
       setEmail("");
@@ -82,8 +77,6 @@ export function LeadIntakeForm() {
       setOtherLanguage("");
       setSelectedAgent("");
     } else if (state.errors && Object.keys(state.errors).length > 0) {
-      // If there are errors, display a generic error toast.
-      // Field-specific errors are displayed below each input field.
       const firstError = state.errors._form?.[0] || Object.values(state.errors).flat()[0];
       if (firstError) {
          toast({
@@ -104,7 +97,6 @@ export function LeadIntakeForm() {
       <CardContent>
         <form ref={formRef} action={formAction} className="space-y-6">
           
-          {/* Full Name */}
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <div className="relative flex items-center">
@@ -114,7 +106,6 @@ export function LeadIntakeForm() {
             {state.errors?.name && <p id="name-error" className="text-sm font-medium text-destructive">{state.errors.name[0]}</p>}
           </div>
 
-          {/* Email Address */}
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
             <div className="relative flex items-center">
@@ -124,7 +115,6 @@ export function LeadIntakeForm() {
             {state.errors?.email && <p id="email-error" className="text-sm font-medium text-destructive">{state.errors.email[0]}</p>}
           </div>
           
-          {/* Niche */}
           <div className="space-y-3" role="radiogroup" aria-labelledby="niche-label">
             <Label id="niche-label">Niche</Label>
             <RadioGroup name="niche" value={niche} onValueChange={setNiche} className="grid grid-cols-1 sm:grid-cols-3 gap-4" aria-describedby="niche-error">
@@ -146,7 +136,6 @@ export function LeadIntakeForm() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Language */}
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
               <Input type="hidden" name="language" value={selectedLanguage} />
@@ -179,7 +168,6 @@ export function LeadIntakeForm() {
               {state.errors?.language && <p id="language-error" className="text-sm font-medium text-destructive">{state.errors.language[0]}</p>}
             </div>
 
-            {/* Agent Origin */}
             <div className="space-y-2">
               <Label htmlFor="agent">Agent Origin</Label>
               <Input type="hidden" name="agent" value={selectedAgent} />
@@ -198,7 +186,6 @@ export function LeadIntakeForm() {
             </div>
           </div>
           
-          {/* Other Language Input */}
           {selectedLanguage === 'other' && (
             <div className="space-y-2 animate-in fade-in-0">
               <Label htmlFor="otherLanguage">Other Language</Label>
@@ -207,7 +194,6 @@ export function LeadIntakeForm() {
             </div>
           )}
 
-          {/* Generic Form Error */}
           {state.errors?._form && <p className="text-sm font-medium text-destructive">{state.errors._form[0]}</p>}
           
           <SubmitButton />
