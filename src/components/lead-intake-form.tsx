@@ -73,8 +73,12 @@ export function LeadIntakeForm() {
       setSelectedLanguage('');
     } else if (state.message) {
       const errorDescription = state.errors?._form?.[0] 
-        || state.errors?.email?.[0] 
+        || state.errors?.name?.[0]
+        || state.errors?.email?.[0]
+        || state.errors?.niche?.[0]
+        || state.errors?.language?.[0]
         || state.errors?.otherLanguage?.[0]
+        || state.errors?.agent?.[0]
         || "Please check the form for errors.";
       toast({
         variant: "destructive",
@@ -148,6 +152,7 @@ export function LeadIntakeForm() {
                       role="combobox"
                       aria-expanded={popoverOpen}
                       className="w-full justify-between pl-10"
+                      aria-describedby="language-error"
                     >
                       {selectedLanguage
                         ? languages.find((language) => language.code === selectedLanguage)?.label
@@ -190,8 +195,8 @@ export function LeadIntakeForm() {
               <Label htmlFor="agent">Agent Origin</Label>
                <div className="relative flex items-center">
                  <UserCheck className="absolute left-3 z-10 h-5 w-5 text-muted-foreground" />
-                <Select name="agent">
-                  <SelectTrigger className="pl-10" aria-describedby="agent-error">
+                <Select name="agent" aria-describedby="agent-error">
+                  <SelectTrigger className="pl-10">
                     <SelectValue placeholder="Select an agent" />
                   </SelectTrigger>
                   <SelectContent>

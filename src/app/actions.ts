@@ -12,7 +12,7 @@ const leadSchema = z.object({
   }),
   language: z.string().min(1, { message: "Please select a language." }),
   otherLanguage: z.string().optional(),
-  agent: z.string().min(1, { message: "Please select an agent origin." }),
+  agent: z.string({ required_error: "Please select an agent origin." }).min(1, { message: "Please select an agent origin." }),
 }).refine(data => {
   if (data.language === 'other') {
     return data.otherLanguage && data.otherLanguage.trim().length > 0;
@@ -53,6 +53,7 @@ const languages: { code: string; label: string }[] = [
     { code: 'hi', label: 'Hindi' },
     { code: 'id', label: 'Indonesian' },
     { code: 'tr', label: 'Turkish' },
+    { code: 'other', label: 'Other' },
 ];
 
 export async function registerLead(prevState: LeadState, formData: FormData): Promise<LeadState> {
