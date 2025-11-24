@@ -1,72 +1,43 @@
 
 'use server';
 
-import { addDoc, collection, getDocs, query, where, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { z } from 'zod';
 
-export type RegisterLeadResult = {
-  success: boolean;
-  message?: string;
-  fieldErrors?: {
-    name?: string;
-    email?: string;
-    niche?: string;
-    language?: string;
-    agentOrigin?: string;
-  };
-};
+export async function registerLead(formData: FormData): Promise<void> {
+  const name = String(formData.get("name") ?? "");
+  const email = String(formData.get("email") ?? "").toLowerCase();
+  const niche = String(formData.get("niche") ?? "");
+  const language = String(formData.get("language") ?? "");
+  const agentOrigin = String(formData.get("agentOrigin") ?? "");
 
-const leadSchema = z.object({
-  name: z.string().min(1, "Full name is required."),
-  email: z.string().email("Invalid email address."),
-  niche: z.string().min(1, "Please select a niche."),
-  language: z.string().min(1, "Language is required.").max(50, "Language must be 50 characters or less."),
-  agentOrigin: z.string().min(1, "Please select an agent origin."),
-});
-
-export async function registerLead(formData: FormData): Promise<RegisterLeadResult> {
+  // Simple validation: If email is missing, do not proceed.
+  if (!email) {
+    console.log("Submission skipped: email is empty.");
+    return;
+  }
+  
   try {
-    const rawData = Object.fromEntries(formData.entries());
-    const validatedFields = leadSchema.safeParse(rawData);
-
-    if (!validatedFields.success) {
-      return {
-        success: false,
-        fieldErrors: validatedFields.error.flatten().fieldErrors,
-      };
-    }
-
-    const { name, email, niche, language, agentOrigin } = validatedFields.data;
-
     const leadsRef = collection(db, "leads");
-    const q = query(leadsRef, where("email", "==", email.toLowerCase()));
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      return {
-        success: false,
-        fieldErrors: { email: "This email is already registered." },
-      };
-    }
-
+    
+    // For this simplified version, we are not checking for duplicates.
+    // We will just add the new lead.
+    
     await addDoc(leadsRef, {
       name,
-      email: email.toLowerCase(),
+      email,
       niche,
       language,
-      agent: agentOrigin, // Mapped from agentOrigin to agent
+      agent: agentOrigin,
       timestamp: serverTimestamp(),
       status: "new",
     });
 
-    return { success: true, message: "Lead registered successfully." };
+    console.log("Successfully added lead for:", email);
 
   } catch (error) {
     console.error("Error in registerLead:", error);
-    return {
-      success: false,
-      message: "Internal server error. Please try again.",
-    };
+    // The action fails silently on the client, but logs the error on the server.
+    return;
   }
 }
