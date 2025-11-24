@@ -47,14 +47,12 @@ export function LeadIntakeForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
   
-  // Local state for UI feedback and controlled components
   const [submissionState, setSubmissionState] = useState<RegisterLeadState | null>(null);
   const [niche, setNiche] = useState<string | undefined>();
   const [language, setLanguage] = useState('');
   const [country, setCountry] = useState('');
 
   const handleSubmit = async (formData: FormData) => {
-    // We call the server action directly
     const result = await registerLead(submissionState!, formData);
     
     setSubmissionState(result);

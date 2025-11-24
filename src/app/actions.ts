@@ -23,7 +23,7 @@ export async function registerLead(
     const nicheRaw = (formData.get("niche") || "").toString().trim();
     const language = (formData.get("language") || "").toString().trim();
     const countryInput = (formData.get("country") || "").toString().trim();
-    
+
     const fieldErrors: Record<string, string> = {};
 
     if (!name) fieldErrors.name = "Name is required";
@@ -31,7 +31,7 @@ export async function registerLead(
     if (!nicheRaw) fieldErrors.niche = "Niche is required";
     if (!language) fieldErrors.language = "Language is required";
     if (!countryInput) fieldErrors.country = "Country is required";
-
+    
     if (Object.keys(fieldErrors).length > 0) {
       return {
         success: false,
@@ -40,11 +40,7 @@ export async function registerLead(
       };
     }
 
-    // Normalize country
-    const countryId = countryInput.toUpperCase(); // document id in collection 'pais'
-    const countryName = countryInput;             // original text
-
-    // Map niche → collection id + agent origin
+    // Map niche → collection id + agentOrigin
     const nicheLower = nicheRaw.toLowerCase();
     let nicheCollectionId: "saude" | "dinheiro" | "relacionamento" | null = null;
     let agentOrigin = "";
@@ -71,13 +67,17 @@ export async function registerLead(
 
     const now = serverTimestamp();
 
+    // Normalize country
+    const countryId = countryInput.toUpperCase(); // ex: "BRASIL"
+    const countryName = countryInput;             // ex: "brasil"
+
     const leadData = {
       name: name,
       email,
-      niche: nicheRaw,       // keep original (Health/Wealth/Relationships)
+      niche: nicheRaw,       // "Health" | "Wealth" | "Relationships"
       language,
       country: countryName,  // original country text
-      agentOrigin,           // auto-filled from niche
+      agentOrigin,           // set from niche
       status: "new",
       createdAt: now,
     };
