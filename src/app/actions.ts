@@ -1,131 +1,128 @@
+"use server";
 
-'use server';
+import { db } from "@/lib/firebase";
+import {
+  doc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 
-import { z } from 'zod';
-import { db } from '@/lib/firebase';
-import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
-
-export type RegisterLeadResult = {
+export type RegisterLeadState = {
   success: boolean;
-  message?: string;
-  fieldErrors?: {
-    name?: string;
-    email?: string;
-    niche?: string;
-    language?: string;
-    country?: string;
-  };
-  formError?: string;
-};
-
-const leadSchema = z.object({
-  name: z.string().trim().min(1, { message: 'Name is required' }),
-  email: z.string().trim().email({ message: 'Invalid email address' }),
-  niche: z.enum(['Health', 'Wealth', 'Relationships'], {
-    errorMap: () => ({ message: 'Niche is required' }),
-  }),
-  language: z.string().trim().min(1, { message: 'Language is required' }),
-  country: z.string().trim().min(1, { message: 'Country is required' }),
-});
-
-const nicheToAgentOrigin: Record<string, string> = {
-  Health: 'Vendedor de Saúde',
-  Wealth: 'Vendedor de Dinheiro',
-  Relationships: 'Vendedor de Relacionamento',
-};
-
-const nicheToCollection: Record<string, string> = {
-  Health: 'saude',
-  Wealth: 'dinheiro',
-  Relationships: 'relacionamento',
+  message: string;
+  fieldErrors?: Record<string, string>;
 };
 
 export async function registerLead(
-  prevState: RegisterLeadResult,
+  prevState: RegisterLeadState,
   formData: FormData
-): Promise<RegisterLeadResult> {
-  const rawData = {
-    name: formData.get('name'),
-    email: formData.get('email'),
-    niche: formData.get('niche'),
-    language: formData.get('language'),
-    country: formData.get('country'),
-  };
-
-  const validatedFields = leadSchema.safeParse(rawData);
-
-  if (!validatedFields.success) {
-    const fieldErrors = validatedFields.error.flatten().fieldErrors;
-    return {
-      success: false,
-      fieldErrors: {
-        name: fieldErrors.name?.[0],
-        email: fieldErrors.email?.[0],
-        niche: fieldErrors.niche?.[0],
-        language: fieldErrors.language?.[0],
-        country: fieldErrors.country?.[0],
-      },
-      formError: 'Please correct the errors below.',
-    };
-  }
-
-  const { name, email, niche, language, country } = validatedFields.data;
-  const emailId = email.toLowerCase();
-  
-  const agentOrigin = nicheToAgentOrigin[niche];
-  const nicheCollection = nicheToCollection[niche];
-  
-  const leadData = {
-    name,
-    email: emailId,
-    niche,
-    language,
-    country,
-    agentOrigin,
-    status: 'new',
-    createdAt: serverTimestamp(),
-  };
-
+): Promise<RegisterLeadState> {
   try {
-    const batch = writeBatch(db);
+    const name = String(formData.get("name") || "").trim();
+    const email = String(formData.get("email") || "").trim().toLowerCase();
+    const niche = String(formData.get("niche") || "").trim(); // "health" | "wealth" | "relationships"
+    const language = String(formData.get("language") || "").trim();
+    const country = String(formData.get("country") || "").trim(); // novo campo do formulário
+    const agentOrigin = String(formData.get("agentOrigin") || "").trim();
 
-    // 1. Main leads collection
-    const leadRef = doc(db, 'leads', emailId);
-    batch.set(leadRef, leadData);
+    const fieldErrors: Record<string, string> = {};
 
-    // 2. Country-specific general leads subcollection
-    const countryLeadRef = doc(db, `pais/${country}/leads`, emailId);
-    batch.set(countryLeadRef, leadData);
+    if (!name) fieldErrors.name = "Name is required";
+    if (!email) fieldErrors.email = "Email is required";
+    if (!niche) fieldErrors.niche = "Niche is required";
+    if (!language) fieldErrors.language = "Language is required";
+    if (!country) fieldErrors.country = "Country is required";
 
-    // 3. Top-level niche-specific collection
-    if (nicheCollection) {
-      const nicheLeadRef = doc(db, nicheCollection, emailId);
-      batch.set(nicheLeadRef, leadData);
-
-      // 4. Country-specific and niche-specific subcollection (NEW)
-      const countryNicheLeadRef = doc(db, `pais/${country}/${nicheCollection}`, emailId);
-      batch.set(countryNicheLeadRef, leadData);
-    }
-    
-    await batch.commit();
-
-    console.log('Lead saved successfully across multiple collections:', emailId);
-
-    return { success: true, message: 'Lead registered successfully!' };
-  } catch (error) {
-    console.error('Error registering lead with batch write:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes('permission-denied')) {
-       return {
+    if (Object.keys(fieldErrors).length > 0) {
+      return {
         success: false,
-        formError: 'You do not have permission to perform this action.',
-        fieldErrors: {},
+        message: "Please fix the highlighted fields.",
+        fieldErrors,
       };
     }
+
+    const now = serverTimestamp();
+
+    // Dados que serão gravados em todos os lugares
+    const leadData = {
+      name,
+      email,
+      niche,
+      language,
+      country,
+      agentOrigin,
+      status: "new",
+      createdAt: now,
+    };
+
+    // Normalizar countryId para usar no caminho do Firestore
+    // Ex: "Brazil" -> "BRAZIL", "United States" -> "UNITED-STATES"
+    const countryId = country
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "-");
+
+    // 1) Garantir que o documento do país exista
+    const countryRef = doc(db, "pais", countryId);
+    await setDoc(
+      countryRef,
+      {
+        countryId,
+        countryName: country,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+
+    // 2) Coleção principal de leads (global)
+    const mainLeadRef = doc(db, "leads", email);
+
+    // 3) Leads dentro do país
+    const countryLeadRef = doc(db, "pais", countryId, "leads", email);
+
+    // 4) Mapear nicho → coleção
+    let nicheCollectionId: "saude" | "dinheiro" | "relacionamento" | null = null;
+    if (niche === "Health") nicheCollectionId = "saude";
+    else if (niche === "Wealth") nicheCollectionId = "dinheiro";
+    else if (niche === "Relationships") nicheCollectionId = "relacionamento";
+
+    const writes: Promise<any>[] = [];
+
+    // gravação global
+    writes.push(setDoc(mainLeadRef, leadData, { merge: true }));
+
+    // gravação por país (subcoleção leads)
+    writes.push(setDoc(countryLeadRef, leadData, { merge: true }));
+
+    // gravação por nicho (global e por país)
+    if (nicheCollectionId) {
+      const rootNicheRef = doc(db, nicheCollectionId, email); // saude/dinheiro/relacionamento
+      const countryNicheRef = doc(
+        db,
+        "pais",
+        countryId,
+        nicheCollectionId,
+        email
+      ); // pais/{countryId}/saude|dinheiro|relacionamento/{email}
+
+      writes.push(
+        setDoc(rootNicheRef, leadData, { merge: true }),
+        setDoc(countryNicheRef, leadData, { merge: true })
+      );
+    }
+
+    // Executar todas as gravações
+    await Promise.all(writes);
+
+    return {
+      success: true,
+      message: "Lead registered successfully.",
+    };
+  } catch (error) {
+    console.error("Error registering lead:", error);
     return {
       success: false,
-      formError: 'An internal error occurred while saving the lead.',
-      fieldErrors: {},
+      message: "An internal error occurred while saving the lead.",
     };
   }
 }
