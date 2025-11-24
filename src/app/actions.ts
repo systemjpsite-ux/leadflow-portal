@@ -8,7 +8,7 @@ const leadSchema = z.object({
   name: z.string().min(2, { message: "Full name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   niche: z.enum(["health", "wealth", "love"], {
-    required_error: "Please select a niche.",
+    errorMap: () => ({ message: "Please select a niche." }),
   }),
   language: z.string().min(1, { message: "Please select a language." }),
   otherLanguage: z.string().optional(),
@@ -19,7 +19,7 @@ const leadSchema = z.object({
   }
   return true;
 }, {
-  message: "Please specify the language.",
+  message: "Please specify the language when selecting 'Other'.",
   path: ["otherLanguage"],
 });
 
@@ -58,12 +58,12 @@ const languages: { code: string; label: string }[] = [
 
 export async function registerLead(prevState: LeadState, formData: FormData): Promise<LeadState> {
   const data = {
-    name: formData.get("name"),
-    email: formData.get("email"),
-    niche: formData.get("niche"),
-    language: formData.get("language"),
-    otherLanguage: formData.get("otherLanguage"),
-    agent: formData.get("agent"),
+    name: formData.get("name") || "",
+    email: formData.get("email") || "",
+    niche: formData.get("niche") || "",
+    language: formData.get("language") || "",
+    otherLanguage: formData.get("otherLanguage") || "",
+    agent: formData.get("agent") || "",
   };
 
   const validatedFields = leadSchema.safeParse(data);
