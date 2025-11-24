@@ -28,8 +28,8 @@ import {
   User,
   UserCheck,
 } from 'lucide-react';
-import { useEffect, useRef } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useRef, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 function SubmitButton() {
@@ -43,7 +43,7 @@ function SubmitButton() {
 
 export function LeadIntakeForm() {
   const initialState: RegisterLeadResult = { success: false, fieldErrors: {} };
-  const [state, formAction] = useFormState(registerLead, initialState);
+  const [state, formAction] = useActionState(registerLead, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export function LeadIntakeForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {state.success && (
+        {state.success && state.message && (
           <Alert variant="default" className="mb-4 bg-green-100 border-green-400 text-green-700">
             <AlertTitle>Success!</AlertTitle>
             <AlertDescription>{state.message}</AlertDescription>
