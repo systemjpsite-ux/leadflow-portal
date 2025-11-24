@@ -20,7 +20,7 @@ export async function registerLead(
   try {
     const name = (formData.get("name") || "").toString().trim();
     const email = (formData.get("email") || "").toString().trim().toLowerCase();
-    const nicheRaw = (formData.get("niche") || "").toString().trim();
+    const niche = (formData.get("niche") || "").toString().trim(); // "health" | "wealth" | "relationships"
     const language = (formData.get("language") || "").toString().trim();
     const countryInput = (formData.get("country") || "").toString().trim();
 
@@ -28,7 +28,7 @@ export async function registerLead(
 
     if (!name) fieldErrors.name = "Name is required";
     if (!email) fieldErrors.email = "Email is required";
-    if (!nicheRaw) fieldErrors.niche = "Niche is required";
+    if (!niche) fieldErrors.niche = "Niche is required";
     if (!language) fieldErrors.language = "Language is required";
     if (!countryInput) fieldErrors.country = "Country is required";
     
@@ -39,26 +39,26 @@ export async function registerLead(
         fieldErrors,
       };
     }
+    
+    // Normalize country
+    const countryId = countryInput.trim().toUpperCase();   // e.g. "BRASIL"
+    const countryName = countryInput.trim(); // e.g. "brasil"
 
-    // Map niche → collection id + agentOrigin
-    const nicheLower = nicheRaw.toLowerCase();
-    let nicheCollectionId: "saude" | "dinheiro" | "relacionamento" | null = null;
-    let agentOrigin = "";
+    // Map niche to Firestore collection ids
+    let nicheCollectionId: "saude" | "dinheiro" | "relacionamento";
+    let agentOrigin: string;
 
-    switch (nicheLower) {
-      case "health":
-        nicheCollectionId = "saude";
-        agentOrigin = "Vendedor de Saúde";
-        break;
-      case "wealth":
-        nicheCollectionId = "dinheiro";
-        agentOrigin = "Vendedor de Dinheiro";
-        break;
-      case "relationships":
-        nicheCollectionId = "relacionamento";
-        agentOrigin = "Vendedor de Relacionamento";
-        break;
-      default:
+    const nicheLower = niche.toLowerCase();
+    if (nicheLower === "health") {
+      nicheCollectionId = "saude";
+      agentOrigin = "Vendedor de Saúde";
+    } else if (nicheLower === "wealth") {
+      nicheCollectionId = "dinheiro";
+      agentOrigin = "Vendedor de Dinheiro";
+    } else if (nicheLower === "relationships") {
+      nicheCollectionId = "relacionamento";
+      agentOrigin = "Vendedor de Relacionamento";
+    } else {
         return {
           success: false,
           message: "Invalid niche value.",
@@ -67,34 +67,31 @@ export async function registerLead(
 
     const now = serverTimestamp();
 
-    // Normalize country
-    const countryId = countryInput.toUpperCase(); // ex: "BRASIL"
-    const countryName = countryInput;             // ex: "brasil"
-
     const leadData = {
-      name: name,
+      name,
       email,
-      niche: nicheRaw,       // "Health" | "Wealth" | "Relationships"
+      niche,
       language,
-      country: countryName,  // original country text
-      agentOrigin,           // set from niche
+      country: countryName,
+      countryId,
+      agentOrigin,
       status: "new",
       createdAt: now,
     };
 
-    const writes: Promise<any>[] = [];
+    const writes: Promise<unknown>[] = [];
 
-    // 1) Main leads collection
-    const rootLeadRef = doc(db, "leads", email);
-    writes.push(setDoc(rootLeadRef, leadData, { merge: true }));
+    // 1) Global leads collection
+    writes.push(
+      setDoc(doc(db, "leads", email), leadData, { merge: true })
+    );
 
-    // 2) Global niche collection (saude/dinheiro/relacionamento)
-    if (nicheCollectionId) {
-      const rootNicheRef = doc(db, nicheCollectionId, email);
-      writes.push(setDoc(rootNicheRef, leadData, { merge: true }));
-    }
+    // 2) Global niche collections (health/wealth/relationships mapped to saude/dinheiro/relacionamento)
+    writes.push(
+      setDoc(doc(db, nicheCollectionId, email), leadData, { merge: true })
+    );
 
-    // 3) Country document (pais/{countryId})
+    // 3) Country document metadata
     const countryRef = doc(db, "pais", countryId);
     writes.push(
       setDoc(
@@ -108,21 +105,23 @@ export async function registerLead(
       )
     );
 
-    // 4) Country → leads
-    const countryLeadRef = doc(db, "pais", countryId, "leads", email);
-    writes.push(setDoc(countryLeadRef, leadData, { merge: true }));
+    // 4) Country → leads subcollection
+    writes.push(
+      setDoc(
+        doc(db, "pais", countryId, "leads", email),
+        leadData,
+        { merge: true }
+      )
+    );
 
-    // 5) Country → niche (pais/{countryId}/saude|dinheiro|relacionamento/{email})
-    if (nicheCollectionId) {
-      const countryNicheRef = doc(
-        db,
-        "pais",
-        countryId,
-        nicheCollectionId,
-        email
-      );
-      writes.push(setDoc(countryNicheRef, leadData, { merge: true }));
-    }
+    // 5) Country → niche subcollection (saude/dinheiro/relacionamento)
+    writes.push(
+      setDoc(
+        doc(db, "pais", countryId, nicheCollectionId, email),
+        leadData,
+        { merge: true }
+      )
+    );
 
     await Promise.all(writes);
 
