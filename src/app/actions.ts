@@ -2,12 +2,93 @@
 
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import {
-  doc,
-  writeBatch,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { getLocaleDetails } from '@/lib/locale';
+import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+
+// A local, simplified map to get a language code for the API call.
+const languageToCodeMap: Record<string, string> = {
+  english: 'en',
+  portuguese: 'pt',
+  spanish: 'es',
+  japanese: 'ja',
+  chinese: 'zh',
+  hindi: 'hi',
+  french: 'fr',
+  german: 'de',
+  russian: 'ru',
+  arabic: 'ar',
+  italian: 'it',
+  korean: 'ko',
+  dutch: 'nl',
+  turkish: 'tr',
+  vietnamese: 'vi',
+  polish: 'pl',
+  ukrainian: 'uk',
+  romanian: 'ro',
+  greek: 'el',
+  swedish: 'sv',
+  czech: 'cs',
+  hungarian: 'hu',
+  danish: 'da',
+  finnish: 'fi',
+  norwegian: 'no',
+  hebrew: 'he',
+  thai: 'th',
+  indonesian: 'id',
+  malay: 'ms',
+  português: 'pt',
+  español: 'es',
+  japonês: 'ja',
+  chinês: 'zh',
+  français: 'fr',
+  deutsch: 'de',
+  alemão: 'de',
+  italiano: 'it',
+  latin: 'la',
+  latim: 'la',
+  en: 'en',
+  pt: 'pt',
+  es: 'es',
+  ja: 'ja',
+  zh: 'zh',
+  hi: 'hi',
+  fr: 'fr',
+  de: 'de',
+  ru: 'ru',
+  ar: 'ar',
+  it: 'it',
+  ko: 'ko',
+  nl: 'nl',
+  la: 'la',
+};
+
+async function getCountryFromLanguage(language: string): Promise<{ countryCode: string; countryName: string }> {
+  const normalizedLanguage = language.trim().toLowerCase();
+  const langCode = languageToCodeMap[normalizedLanguage] || normalizedLanguage; // Use map or fallback to input
+
+  try {
+    const response = await fetch(`https://restcountries.com/v3.1/lang/${langCode}`);
+    if (!response.ok) {
+      console.warn(`Could not find country for language: ${langCode}. Defaulting to US.`);
+      return { countryCode: 'US', countryName: 'United States' };
+    }
+    const data = await response.json();
+    
+    // Use the first country from the list as the primary one.
+    if (data && data.length > 0) {
+      const country = data[0];
+      return {
+        countryCode: country.cca2 || 'N/A',
+        countryName: country.name.common || 'Unknown',
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching country data:', error);
+  }
+
+  // Default fallback
+  return { countryCode: 'US', countryName: 'United States' };
+}
+
 
 export type RegisterLeadResult = {
   success: boolean;
@@ -73,17 +154,15 @@ export async function registerLead(
   const emailId = email.toLowerCase();
   
   const agentOrigin = nicheToAgentOrigin[niche];
-  const { languageCode, countryCode, countryName } = getLocaleDetails(languageInput);
+  const { countryCode, countryName } = await getCountryFromLanguage(languageInput);
   const nicheCollection = nicheToCollection[niche];
 
   const leadData = {
     name,
     email: emailId,
     niche,
-    languageInput, // The original text typed by the agent
-    languageCode,  // The detected ISO language code
-    countryCode,   // The detected ISO country code
-    countryName,   // The detected country name
+    language: languageInput, // The original text typed by the agent
+    country: countryName,   // The detected country name
     agentOrigin,
     status: 'new',
     createdAt: serverTimestamp(),
