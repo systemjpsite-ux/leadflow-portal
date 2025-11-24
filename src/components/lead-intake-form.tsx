@@ -1,7 +1,7 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
-import { useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { registerLead, type LeadState } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,7 @@ function SubmitButton() {
 }
 
 export function LeadIntakeForm() {
-  const [state, formAction] = useFormState(registerLead, initialState);
+  const [state, formAction] = useActionState(registerLead, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedLanguage, setSelectedLanguage] = useState('');
