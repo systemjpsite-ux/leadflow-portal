@@ -134,7 +134,7 @@ export async function registerLead(
   const nicheCollection = nicheToCollection[niche];
   
   const countryNamePt = COUNTRY_NAME_EN_TO_PT[countryName] ?? countryName;
-  const countryDocId = `${countryName} / ${countryNamePt}`;
+  const countryDocId = `${countryName} - ${countryNamePt}`;
 
   const leadData = {
     name,
