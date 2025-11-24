@@ -1,50 +1,75 @@
-
 'use server';
 
-import { addDoc, collection, getDocs, query, where, serverTimestamp } from "firebase/firestore";
-import { getFirestore } from "firebase/firestore";
-import { initializeFirebase } from "@/firebase";
+import { z } from 'zod';
+import { db } from '@/lib/firebase';
 
-export async function registerLead(formData: FormData): Promise<void> {
-  const { firestore } = initializeFirebase();
+export type RegisterLeadResult = {
+  success: boolean;
+  message?: string;
+  fieldErrors?: {
+    name?: string;
+    email?: string;
+    niche?: string;
+    language?: string;
+    agentOrigin?: string;
+  };
+};
+
+const leadSchema = z.object({
+  name: z.string().trim().min(1, { message: 'Name is required' }),
+  email: z.string().trim().email({ message: 'Invalid email address' }),
+  niche: z.string().min(1, { message: 'Niche is required' }),
+  language: z.string().trim().min(1, { message: 'Language is required' }),
+  agentOrigin: z.string().min(1, { message: 'Agent origin is required' }),
+});
+
+export async function registerLead(
+  prevState: RegisterLeadResult | null,
+  formData: FormData
+): Promise<RegisterLeadResult> {
+  const rawData = {
+    name: formData.get('name'),
+    email: formData.get('email'),
+    niche: formData.get('niche'),
+    language: formData.get('language'),
+    agentOrigin: formData.get('agentOrigin'),
+  };
+
+  const validatedFields = leadSchema.safeParse(rawData);
+
+  if (!validatedFields.success) {
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
+    return {
+      success: false,
+      fieldErrors: {
+        name: fieldErrors.name?.[0],
+        email: fieldErrors.email?.[0],
+        niche: fieldErrors.niche?.[0],
+        language: fieldErrors.language?.[0],
+        agentOrigin: fieldErrors.agentOrigin?.[0],
+      },
+    };
+  }
+  
+  const { name, email, niche, language, agentOrigin } = validatedFields.data;
 
   try {
-    const name = String(formData.get("name") ?? "");
-    const email = String(formData.get("email") ?? "").toLowerCase();
-    const niche = String(formData.get("niche") ?? "");
-    const language = String(formData.get("language") ?? "");
-    const agentOrigin = String(formData.get("agentOrigin") ?? "");
-
-    if (!email) {
-      console.log("Submission skipped: email is empty.");
-      return;
-    }
+    const leadRef = db.collection('leads').doc(email.toLowerCase());
     
-    const leadsRef = collection(firestore, "leads");
-    
-    // Check for duplicates before adding
-    const q = query(leadsRef, where("email", "==", email));
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-        console.log(`Submission skipped: email ${email} already exists.`);
-        return;
-    }
-
-    await addDoc(leadsRef, {
+    await leadRef.set({
       name,
-      email,
+      email: email.toLowerCase(),
       niche,
       language,
       agentOrigin,
-      createdAt: serverTimestamp(),
-      status: "new",
-    });
+      createdAt: new Date().toISOString(),
+    }, { merge: true });
 
-    console.log("Successfully added lead for:", email);
+    console.log('Lead saved:', email);
 
+    return { success: true, message: 'Lead registered successfully.' };
   } catch (error) {
-    console.error("Error in registerLead server action:", error);
-    return;
+    console.error('Error saving lead to Firestore:', error);
+    return { success: false, message: 'Internal error while saving lead.' };
   }
 }
