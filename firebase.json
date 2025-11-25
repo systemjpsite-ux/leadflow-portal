@@ -1,8 +1,6 @@
 {
-  "hosting": [
-    {
-      "source": ".",
-      "frameworksBackend": {}
-    }
-  ]
+  "hosting": {
+    "site": "leadflow-portal-fc917",
+    "source": "."
+  }
 }
