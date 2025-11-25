@@ -16,13 +16,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Next.js and export static site
+      - name: Build Next.js app
         run: npm run build:firebase
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_LEADFLOW_PORTAL_FC917 }}"
-          channelId: live
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LEADFLOW_PORTAL_FC917 }}
           projectId: "leadflow-portal-fc917"
