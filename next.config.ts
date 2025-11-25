@@ -1,9 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'export',
-  distDir: 'out',
-
+  // NÃO usar output: 'export' aqui
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -11,6 +9,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    // Deixa as imagens sem otimização no build, simplifica pro Firebase
     unoptimized: true,
   },
 };
