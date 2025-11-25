@@ -1,6 +1,11 @@
 {
   "hosting": {
     "site": "leadflow-portal-fc917",
-    "source": "."
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
   }
 }
