@@ -1,7 +1,10 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // NÃO usar output: 'export' aqui
+  // Gera HTML estático na pasta "out"
+  output: 'export',
+  distDir: 'out',
+
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -9,7 +12,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    // Deixa as imagens sem otimização no build, simplifica pro Firebase
+    // Next não vai tentar otimizar imagens (bom pra export estático)
     unoptimized: true,
   },
 };
