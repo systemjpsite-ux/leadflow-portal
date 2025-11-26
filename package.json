@@ -12,16 +12,13 @@
   }
 }
 
- "scripts": {
-  "dev": "next dev --turbopack -p 9002",
-  "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
-  "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
+"scripts": {
+  "dev": "next dev",
   "build": "next build",
-  "build:firebase": "next build",
   "start": "next start",
-  "lint": "next lint",
-  "typecheck": "tsc --noEmit"
-},
+  "lint": "next lint"
+}
+
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
     "@genkit-ai/next": "^1.20.0",
