@@ -1,5 +1,3 @@
-"use server";
-
 import { db } from "@/lib/firebase";
 import {
   doc,
@@ -20,7 +18,7 @@ export async function registerLead(
   try {
     const name = (formData.get("name") || "").toString().trim();
     const email = (formData.get("email") || "").toString().trim().toLowerCase();
-    const niche = (formData.get("niche") || "").toString().trim(); // "health" | "wealth" | "relationships"
+    const niche = (formData.get("niche") || "").toString().trim();
     const language = (formData.get("language") || "").toString().trim();
     const country = (formData.get("country") || "").toString().trim();
 
@@ -39,11 +37,9 @@ export async function registerLead(
         fieldErrors,
       };
     }
-    
-    // Normalize country
+
     const countryId = country.trim().toUpperCase();
 
-    // Map niche to Firestore collection ids
     let nicheCollectionId: "saude" | "dinheiro" | "relacionamento";
     let agentOrigin: string;
 
@@ -58,10 +54,10 @@ export async function registerLead(
       nicheCollectionId = "relacionamento";
       agentOrigin = "Vendedor de Relacionamento";
     } else {
-        return {
-          success: false,
-          message: "Invalid niche value.",
-        };
+      return {
+        success: false,
+        message: "Invalid niche value.",
+      };
     }
 
     const now = serverTimestamp();
@@ -80,17 +76,14 @@ export async function registerLead(
 
     const writes: Promise<unknown>[] = [];
 
-    // 1) Global leads collection
     writes.push(
       setDoc(doc(db, "leads", email), leadData, { merge: true })
     );
 
-    // 2) Global niche collections (health/wealth/relationships mapped to saude/dinheiro/relacionamento)
     writes.push(
       setDoc(doc(db, nicheCollectionId, email), leadData, { merge: true })
     );
 
-    // 3) Country document metadata
     const countryRef = doc(db, "pais", countryId);
     writes.push(
       setDoc(
@@ -104,7 +97,6 @@ export async function registerLead(
       )
     );
 
-    // 4) Country → leads subcollection
     writes.push(
       setDoc(
         doc(db, "pais", countryId, "leads", email),
