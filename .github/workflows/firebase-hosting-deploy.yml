@@ -1,4 +1,4 @@
-name: Deploy to Firebase Hosting on Push
+name: Deploy Next.js to Firebase Hosting + Functions
 
 on:
   push:
@@ -6,29 +6,29 @@ on:
       - main
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Use Node.js 20
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "20"
 
-      - name: Install dependencies
+      - name: Install root dependencies
         run: npm ci
 
       - name: Build Next.js
         run: npm run build
 
-      - name: Deploy to Firebase Hosting
+      - name: Install functions dependencies
+        working-directory: ./functions
+        run: npm ci
+
+      - name: Deploy to Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LEADFLOW_PORTAL_FC917 }}
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_LEADFLOW_PORTAL_FC917 }}"
           projectId: "leadflow-portal-fc917"
-        env:
-          FIREBASE_CLI_EXPERIMENTS: webframeworks
+          channelId: "live"
