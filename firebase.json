@@ -1,12 +1,8 @@
 {
   "hosting": {
-    "site": "leadflow-portal-fc917", // ou seu site ID real
-    "public": "public", // permanece, mas rotas vão para função
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "site": "leadflow-portal-fc917",
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
         "source": "**",
